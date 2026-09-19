@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f13">
+<title>Treasure Ledger</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💎%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   DESIGN SYSTEM
+   ========================================================== */
+:root{
+  --bg:#0d0f13; --bg2:#101319; --surface:#151920; --surface2:#1b2029; --surface3:#232936;
+  --line:#242a35; --line2:#323a4a;
+  --text:#eceef2; --text2:#b6bcc8; --muted:#818999;
+  --gold:#d9a441; --gold2:#f0c778; --gold-ink:#1d1403; --gold-soft:rgba(217,164,65,.13);
+  --green:#56c596; --green-soft:rgba(86,197,150,.13);
+  --red:#ee706d; --red-soft:rgba(238,112,109,.13);
+  --blue:#7ea8f8; --blue-soft:rgba(126,168,248,.13);
+  --r:14px; --r-sm:10px; --shadow:0 18px 50px rgba(0,0,0,.45);
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{color-scheme:dark;-webkit-text-size-adjust:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+::selection{background:var(--gold-soft);color:var(--gold2)}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+h2{font-size:16px;font-weight:700;letter-spacing:-.01em}
+h3{font-size:15px;font-weight:700}
+.muted{color:var(--muted)} .gold{color:var(--gold2)} .pos{color:var(--green)} .neg{color:var(--red)}
+.mb{margin-bottom:14px} .r{text-align:right}
+.ic{flex:none;vertical-align:middle}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;z-index:60;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 16px;font-weight:800;font-size:16px;letter-spacing:-.01em}
+.brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(140deg,var(--gold2),#a9761f);color:var(--gold-ink)}
+.nav-group{padding:14px 10px 6px;font-size:12px;font-weight:700;color:var(--muted)}
+.nav-item{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;color:var(--text2);font-weight:600;transition:background .15s,color .15s}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{background:var(--gold-soft);color:var(--gold2)}
+.side-user{margin-top:auto;padding:12px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:10px;background:var(--surface)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--surface3);display:grid;place-items:center;font-weight:800;color:var(--gold2);flex:none;font-size:13px}
+.side-user .who{min-width:0;flex:1}
+.side-user .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}
+.side-user .who span{font-size:12px;color:var(--muted)}
+.main{min-width:0}
+.topbar{display:none;position:sticky;top:0;z-index:50;background:rgba(13,15,19,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 14px;align-items:center;gap:12px}
+.topbar b{font-size:16px}
+.scrim{position:fixed;inset:0;background:rgba(4,5,8,.6);z-index:55;opacity:0;pointer-events:none;transition:opacity .2s}
+.view{padding:30px clamp(16px,3vw,40px) 70px;max-width:1240px;margin:0 auto}
+.view.enter{animation:enter .22s ease-out}
+@keyframes enter{from{opacity:0}to{opacity:1}}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.page-head p{color:var(--muted);margin-top:4px}
+.grid{display:grid;gap:16px}
+.stats{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-bottom:16px}
+.two{grid-template-columns:1.35fr 1fr;margin-bottom:16px}
+.cols2{grid-template-columns:1fr 1fr}
+@media(max-width:960px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;width:280px;transform:translateX(-102%);transition:transform .25s ease}
+  .sidebar.open{transform:none;box-shadow:var(--shadow)}
+  .topbar{display:flex}
+  body.nav-open .scrim{opacity:1;pointer-events:auto}
+  .two,.cols2{grid-template-columns:1fr}
+  h1{font-size:22px}
+}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.card.p0{padding:0;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.stat{display:flex;flex-direction:column;gap:10px;padding:18px}
+.stat-top{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-weight:600;font-size:13px}
+.stat-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface3);color:var(--text2)}
+.stat-ico.gold{background:var(--gold-soft);color:var(--gold2)}
+.stat-ico.green{background:var(--green-soft);color:var(--green)}
+.stat-ico.red{background:var(--red-soft);color:var(--red)}
+.stat-ico.blue{background:var(--blue-soft);color:var(--blue)}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.stat-sub{font-size:12.5px;color:var(--muted);min-height:18px}
+
+/* ---------- buttons / fields ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:11px;border:1px solid var(--line2);background:var(--surface2);font-weight:700;transition:background .15s,filter .15s,border-color .15s;white-space:nowrap}
+.btn:hover{background:var(--surface3)}
+.btn.primary{background:linear-gradient(180deg,var(--gold2),var(--gold));color:var(--gold-ink);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.ghost:hover{background:var(--surface2)}
+.btn.danger{color:var(--red);background:var(--red-soft);border-color:transparent}
+.btn.sm{height:32px;padding:0 12px;font-size:13px;border-radius:9px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn.is-busy{pointer-events:none}
+.btn.is-busy::before{content:'';width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.icon-btn{width:34px;height:34px;border-radius:9px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;transition:background .15s,color .15s;flex:none}
+.icon-btn:hover{background:var(--surface3);color:var(--text)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0}
+.field>span:first-child{font-size:13px;font-weight:600;color:var(--text2)}
+.input{width:100%;height:42px;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:0 12px;outline:none;transition:border-color .15s,box-shadow .15s}
+.input::placeholder{color:#5d6472}
+.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.input.sm{height:34px;border-radius:9px}
+select.input{appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23818999' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+input[type=date].input{padding-right:8px}
+.input-affix{position:relative}
+.input-affix>i{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--muted);pointer-events:none;display:flex}
+.input-affix .input{padding-left:28px}
+.input-affix.search .input{padding-left:38px}
+.static{min-height:42px;display:flex;align-items:center;padding:0 12px;border-radius:11px;background:var(--surface2);font-weight:700}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 16px}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.actions.between{justify-content:space-between;align-items:center;margin-top:16px}
+.hint{color:var(--muted);font-size:12.5px;margin-top:12px}
+.filters{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;padding:16px 18px}
+.filters .field{margin:0;min-width:150px}
+.filters .grow{flex:1;min-width:220px}
+input[type=number]{-moz-appearance:textfield}
+
+/* ---------- chips / tabs ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:99px;background:var(--surface3);color:var(--text2);font-size:12.5px;font-weight:600;border:0}
+.chip.gold{background:var(--gold-soft);color:var(--gold2)}
+.chip.warn{background:var(--gold-soft);color:var(--gold2);cursor:pointer}
+.chip.warn:hover{filter:brightness(1.2)}
+.chip.green{background:var(--green-soft);color:var(--green)}
+.tabs{display:inline-flex;gap:4px;padding:4px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;margin-bottom:16px}
+.tab{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:9px;border:0;background:none;color:var(--text2);font-weight:700}
+.tab.active{background:var(--surface3);color:var(--gold2)}
+
+/* ---------- calculator ---------- */
+.calc-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.sum-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sum-card span{color:var(--muted);font-size:13px;font-weight:600}
+.sum-card b{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.sum-card.profit{border-color:var(--line2);background:linear-gradient(180deg,var(--surface2),var(--surface))}
+@media(max-width:560px){.calc-summary{gap:8px}.sum-card{padding:12px}.sum-card b{font-size:17px}}
+.row-total{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg2);border-radius:12px;margin:6px 0 4px;font-weight:600;color:var(--text2)}
+.row-total b{font-size:20px;color:var(--text)}
+.tcard{border:1px solid var(--line);border-radius:var(--r);padding:18px;background:var(--surface);margin-bottom:14px}
+.modal .tcard{background:transparent;border:0;padding:0;margin:0}
+.tcard-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+.tnum{display:flex;align-items:center;gap:10px;font-weight:700}
+.tnum .input{width:84px}
+.irows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.irow{display:grid;grid-template-columns:minmax(0,1fr) 76px minmax(150px,auto) 34px;gap:8px;align-items:center}
+.irow .input{height:40px}
+.iprice{font-size:13px;color:var(--muted);text-align:right;line-height:1.25}
+.iprice b{color:var(--text);font-weight:700}
+.tfoot{display:flex;flex-wrap:wrap;gap:6px 18px;padding-top:12px;margin-top:8px;border-top:1px dashed var(--line2);font-size:13.5px;color:var(--text2)}
+.tfoot b{color:var(--text)}
+@media(max-width:640px){
+  .irow{grid-template-columns:minmax(0,1fr) 70px 34px}
+  .irow .iprice{grid-column:1/3;text-align:left;margin-top:-2px}
+}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse}
+.table th{text-align:left;font-size:12.5px;font-weight:700;color:var(--muted);padding:12px 18px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+.table td{padding:13px 18px;border-bottom:1px solid var(--line);vertical-align:middle}
+.table th.r,.table td.r{text-align:right}
+.table tbody tr{transition:background .12s}
+.table tbody tr:hover{background:rgba(255,255,255,.025)}
+.table tbody tr:last-child td{border-bottom:0}
+.table.mini th,.table.mini td{padding:9px 12px;font-size:13.5px}
+body.compact .table td{padding-top:8px;padding-bottom:8px}
+.table-foot{display:flex;justify-content:space-between;gap:12px;padding:14px 18px;border-top:1px solid var(--line);background:var(--bg2);color:var(--text2);font-weight:600}
+.table-foot b{color:var(--gold2)}
+.cell-main{font-weight:700}
+.cell-sub{font-size:12.5px;color:var(--muted)}
+@media(max-width:720px){
+  .table.stack thead{display:none}
+  .table.stack,.table.stack tbody,.table.stack tr,.table.stack td{display:block;width:100%}
+  .table.stack tr{padding:12px 16px;border-bottom:1px solid var(--line)}
+  .table.stack tbody tr:last-child{border-bottom:0}
+  .table.stack td{display:flex;justify-content:space-between;gap:16px;padding:4px 0;border:0;text-align:right}
+  .table.stack td::before{content:attr(data-label);color:var(--muted);font-weight:600;text-align:left;flex:none}
+  .table.stack td.nolabel::before{display:none}
+}
+.empty{padding:46px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty .ic{opacity:.6}
+.empty b{color:var(--text2)}
+
+/* ---------- treasures ---------- */
+.tr-card{margin-bottom:14px}
+.tr-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.tr-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+.tr-title .ti{width:32px;height:32px;border-radius:9px;background:var(--gold-soft);color:var(--gold2);display:grid;place-items:center}
+.tr-when{color:var(--muted);font-size:13px}
+.tr-total{margin-left:auto;font-weight:800;font-size:18px}
+.tr-log{color:var(--text2);margin-bottom:12px}
+.tr-list{margin:6px 0 0 20px}
+.tr-list li{margin:2px 0}
+.tr-card .table-wrap{border:1px solid var(--line);border-radius:12px}
+.tr-card .table th{background:var(--bg2)}
+
+/* ---------- chart ---------- */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--font);font-size:11px}
+.chart .grid-l{stroke:var(--line);stroke-width:1}
+.chart .bar-in{fill:var(--gold)} .chart .bar-ex{fill:#5b6478}
+.chart .hit{fill:transparent}
+.chart g.day:hover .bar-in{fill:var(--gold2)} .chart g.day:hover .bar-ex{fill:#7b8499}
+.legend{display:flex;gap:18px;margin-top:10px;color:var(--muted);font-size:12.5px;font-weight:600}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.week-nav{display:flex;align-items:center;gap:8px}
+.week-label{font-weight:700;min-width:150px;text-align:center}
+
+/* ---------- sales ---------- */
+.sale-layout{display:grid;grid-template-columns:minmax(0,480px) 1fr;gap:16px;align-items:start;margin-bottom:16px}
+@media(max-width:960px){.sale-layout{grid-template-columns:1fr}}
+.sale-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--bg2);margin-bottom:14px}
+.sale-total b{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.tg-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--blue-soft);color:var(--blue);font-size:13.5px;margin-bottom:14px;transition:background .2s,color .2s}
+.tg-note.on{background:var(--green-soft);color:var(--green)}
+.item-info{font-size:13px;color:var(--muted);min-height:20px;margin-top:-6px;margin-bottom:12px}
+
+/* ---------- leaderboard ---------- */
+.podium{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:14px;align-items:end;margin-bottom:18px}
+.pod{position:relative;text-align:center;padding:22px 16px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface)}
+.pod.p1{padding:32px 16px;border-color:rgba(217,164,65,.5);background:linear-gradient(180deg,rgba(217,164,65,.12),var(--surface) 70%)}
+.pod .medal{font-size:34px;line-height:1}
+.pod .nick{font-weight:800;font-size:16px;margin:10px 0 2px;word-break:break-word}
+.pod .amt{font-size:22px;font-weight:800;color:var(--gold2)}
+.pod .cnt{font-size:12.5px;color:var(--muted)}
+.pod.me{box-shadow:0 0 0 2px var(--gold)}
+@media(max-width:720px){.podium{grid-template-columns:1fr}.pod.p1{order:-1}.pod-empty{display:none}}
+.rank-num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--surface3);font-weight:800}
+tr.me td{background:var(--gold-soft)}
+.me-tag{margin-left:8px}
+
+/* ---------- profile ---------- */
+.profile-grid{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+@media(max-width:960px){.profile-grid{grid-template-columns:1fr}}
+.id-card{text-align:center}
+.id-card .avatar{width:76px;height:76px;font-size:26px;margin:0 auto 14px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px}
+.kv span{color:var(--muted)} .kv b{font-weight:700;text-align:right;word-break:break-all}
+.switch-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.switch-row:first-of-type{border-top:0}
+.switch-row p{color:var(--muted);font-size:13px}
+.switch{position:relative;width:44px;height:26px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0;z-index:1}
+.switch i{position:absolute;inset:0;border-radius:99px;background:var(--surface3);transition:background .18s}
+.switch i::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .18s}
+.switch input:checked+i{background:var(--gold)}
+.switch input:checked+i::after{transform:translateX(18px)}
+.switch input:focus-visible+i{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- auth ---------- */
+.auth{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(900px 500px at 50% -10%,rgba(217,164,65,.10),transparent 70%),var(--bg)}
+.auth-card{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:34px 30px;box-shadow:var(--shadow)}
+.auth-card .brand{justify-content:center;padding-bottom:6px;font-size:19px}
+.auth-card .sub{text-align:center;color:var(--muted);margin-bottom:26px}
+.auth-err{color:var(--red);background:var(--red-soft);border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px}
+.pw{position:relative}
+.pw .icon-btn{position:absolute;right:4px;top:4px}
+.pw .input{padding-right:44px}
+.boot{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:300}
+.spinner{width:30px;height:30px;border:3px solid var(--line2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+
+/* ---------- modal / toast / loader ---------- */
+.modal-back{position:fixed;inset:0;background:rgba(5,6,9,.68);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px;z-index:100;opacity:0;transition:opacity .18s}
+.modal-back.in{opacity:1}
+.modal{width:min(480px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line2);border-radius:18px;box-shadow:var(--shadow);transform:translateY(10px);transition:transform .18s}
+.modal-back.in .modal{transform:none}
+.modal.lg{width:min(720px,100%)}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 6px}
+.modal-b{padding:14px 20px 8px;overflow-y:auto}
+.modal-f{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px 18px}
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:250;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;min-width:240px;max-width:380px;padding:12px 14px;border-radius:12px;background:var(--surface3);border:1px solid var(--line2);box-shadow:var(--shadow);font-weight:600;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s}
+.toast.in{opacity:1;transform:none}
+.toast .ti{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none}
+.toast.success .ti{background:var(--green-soft);color:var(--green)}
+.toast.warn .ti{background:var(--gold-soft);color:var(--gold2)}
+@media(max-width:560px){#toasts{left:12px;right:12px;bottom:12px}.toast{max-width:none}}
+#loader{position:fixed;top:0;left:0;right:0;height:3px;z-index:400;opacity:0;transition:opacity .2s;overflow:hidden;pointer-events:none}
+#loader::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,transparent,var(--gold2),transparent);animation:slide 1s linear infinite}
+@keyframes slide{from{left:-40%}to{left:100%}}
+#busy{position:fixed;left:50%;top:14px;transform:translate(-50%,-14px);z-index:399;display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:99px;background:var(--surface3);border:1px solid var(--line2);font-weight:600;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow)}
+#busy .spinner{width:14px;height:14px;border-width:2px}
+body.is-loading #loader{opacity:1}
+body.is-loading #busy{opacity:1;transform:translate(-50%,0)}
+body.no-anim *{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="boot" class="boot"><div class="spinner"></div></div>
+
+<!-- ===== AUTH ===== -->
+<div id="auth" class="auth" hidden>
+  <form class="auth-card" id="loginForm" autocomplete="on">
+    <div class="brand"><div class="brand-mark" id="authMark"></div>Treasure Ledger</div>
+    <p class="sub">Облік скарбів, витрат і продажів</p>
+    <div class="auth-err" id="authErr" hidden></div>
+    <label class="field"><span>Логін</span><input class="input" id="loginInput" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
+    <label class="field"><span>Пароль</span>
+      <div class="pw"><input class="input" id="passInput" name="password" type="password" autocomplete="current-password" required>
+      <button class="icon-btn" type="button" id="pwToggle" aria-label="Показати пароль"></button></div>
+    </label>
+    <button class="btn primary block" id="loginBtn" type="submit">Увійти</button>
+  </form>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="app" hidden>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark" id="sideMark"></div>Treasure Ledger</div>
+    <nav id="nav"></nav>
+    <div class="side-user">
+      <div class="avatar" id="sideAvatar"></div>
+      <div class="who"><b id="sideNick"></b><span>Мій кабінет</span></div>
+      <button class="icon-btn" id="logoutBtn" title="Вийти" aria-label="Вийти"></button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="burger" aria-label="Меню"></button>
+      <b id="pageTitle"></b>
+    </header>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="loader"></div>
+<div id="busy"><div class="spinner"></div>Обробка запиту…</div>
+<datalist id="itemsDL"></datalist>
+
+<script>
+/* ==========================================================
+   CONFIG
+   ========================================================== */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbzA_hGNh56uYNhp-DlhlcLMMSya-rDhhdQKJTmyXPlR0tM3C06XKQTaih94UAy3RKLSvg/exec',   // ← вставте URL веб-додатку Apps Script
+  CURRENCY: '$',
+  TIMEZONE: 'Europe/Kiev',
+  DEFAULT_CATEGORY: 'Коштовність',
+  EXPENSES: [
+    { key: 'maps',     label: 'Карти скарбів' },
+    { key: 'lockpick', label: 'Відмичка' },
+    { key: 'shovel',   label: 'Лопата' },
+    { key: 'food',     label: 'Їжа' },
+    { key: 'water',    label: 'Вода' },
+    { key: 'horse',    label: 'Кінь' },
+    { key: 'other',    label: 'Інші витрати' }
+  ]
+};
+const LS = { token: 'tl_token', calc: 'tl_calc', prefs: 'tl_prefs' };
+const WEEKDAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота', 'Неділя'];
+const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+
+/* ==========================================================
+   UTILS
+   ========================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(n) ? n : 0; };
+const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const fmtMoney = n => { n = round2(n); return (n < 0 ? '-' : '') + CONFIG.CURRENCY + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); };
+const fmtDate = iso => { if (!iso) return ''; const [y, m, d] = String(iso).slice(0, 10).split('-'); return `${d}.${m}.${y}`; };
+const fmtDateShort = iso => { const [, m, d] = String(iso).split('-'); return `${d}.${m}`; };
+const fmtTime = t => String(t || '').slice(0, 5);
+const norm = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+const initials = s => (String(s || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2) || '?').toUpperCase();
+const todayISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.TIMEZONE }).format(new Date());
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const threshold = () => State.boot?.config?.bigSaleThreshold ?? 80;
+
+/* ==========================================================
+   ICONS
+   ========================================================== */
+const ICONS = {
+  dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+  calc: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h4"/>',
+  gem: '<path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3 8 9l4 13 4-13-3-6M2 9h20"/>',
+  cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+  trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  settings: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0ZM12 9v4M12 17h.01"/>',
+  wallet: '<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+  trend: '<path d="m22 7-8.5 8.5-5-5L2 17M16 7h6v6"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4ZM22 2 11 13"/>',
+  map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  dollar: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
+};
+const icon = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+/* ==========================================================
+   STATE
+   ========================================================== */
+const State = {
+  token: null, profile: null, boot: null, page: 'dashboard',
+  calc: null, calcTab: 'expenses',
+  weekOffset: 0, weekData: null,
+  hist: { q: '', period: 'all', from: '', to: '', sort: 'date_desc' },
+  listQ: { q: '', cat: 'all', sort: 'name_asc' },
+  prefs: { compact: false, noAnim: false, remember: true }
+};
+const findItem = name => { const k = norm(name); return k ? State.boot.items.find(i => norm(i.name) === k) : null; };
+const categories = () => [...new Set([CONFIG.DEFAULT_CATEGORY, 'Предмет', ...State.boot.items.map(i => i.category)])];
+const nextTreasureNumber = () => State.boot.treasures.reduce((m, t) => Math.max(m, t.number), 0) + 1;
+
+/* ==========================================================
+   API
+   ========================================================== */
+class ApiError extends Error { constructor(m, d = {}) { super(m); this.code = d.code; this.data = d; } }
+
+const Loader = {
+  n: 0,
+  show() { this.n++; document.body.classList.add('is-loading'); },
+  hide() { this.n = Math.max(0, this.n - 1); if (!this.n) document.body.classList.remove('is-loading'); }
+};
+
+async function api(action, payload = {}, { silent = false } = {}) {
+  if (/ВАШ_|YOUR_/.test(CONFIG.API_URL)) throw new ApiError('Вкажіть адресу Apps Script (API_URL) у CONFIG всередині index.html');
+  if (!silent) Loader.show();
+  try {
+    let res;
+    try {
+      res = await fetch(CONFIG.API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify({ action, token: State.token, ...payload }) });
+    } catch (e) { throw new ApiError('Немає зв’язку із сервером. Перевірте інтернет і адресу API.'); }
+    let json;
+    try { json = await res.json(); } catch (e) { throw new ApiError('Сервер повернув некоректну відповідь. Перевірте розгортання Apps Script.'); }
+    if (!json.success) {
+      if (json.code === 'AUTH' && State.token) forceLogout(json.error);
+      throw new ApiError(json.error || 'Помилка запиту', json);
+    }
+    return json.data;
+  } finally { if (!silent) Loader.hide(); }
+}
+
+/* ==========================================================
+   UI (toast, modal, helpers)
+   ========================================================== */
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span class="ti">${icon(type === 'success' ? 'check' : 'alert', 14)}</span><span>${esc(msg)}</span>`;
+  $('#toasts').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('in'));
+  setTimeout(() => { el.classList.remove('in'); setTimeout(() => el.remove(), 250); }, 3800);
+}
+
+function openModal({ title, body = '', actions = [], size = '', onMount, onClose }) {
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.innerHTML = `<div class="modal ${size}" role="dialog" aria-modal="true"><header class="modal-h"><h3>${esc(title)}</h3><button class="icon-btn" data-x aria-label="Закрити">${icon('x', 18)}</button></header><div class="modal-b">${body}</div>${actions.length ? '<footer class="modal-f"></footer>' : ''}</div>`;
+  let closed = false;
+  const onKey = e => { if (e.key === 'Escape' && $('#modalRoot').lastElementChild === back) close(); };
+  function close() {
+    if (closed) return; closed = true;
+    document.removeEventListener('keydown', onKey);
+    back.classList.remove('in');
+    setTimeout(() => back.remove(), 180);
+    onClose && onClose();
+  }
+  const m = { el: back.querySelector('.modal'), back, close };
+  const foot = $('.modal-f', back);
+  actions.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (a.kind || '');
+    b.textContent = a.label;
+    b.addEventListener('click', () => a.onClick && a.onClick(m, b));
+    foot.appendChild(b);
+  });
+  $('[data-x]', back).onclick = close;
+  back.addEventListener('mousedown', e => { if (e.target === back) close(); });
+  document.addEventListener('keydown', onKey);
+  $('#modalRoot').appendChild(back);
+  requestAnimationFrame(() => back.classList.add('in'));
+  onMount && onMount(m);
+  const first = $('input:not([type=hidden])', m.el);
+  if (first) setTimeout(() => first.focus(), 60);
+  return m;
+}
+
+async function busy(btn, fn) {
+  if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+  try { return await fn(); }
+  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.classList.remove('is-busy'); } }
+}
+async function guard(btn, fn) {
+  try { return await busy(btn, fn); }
+  catch (e) { toast(e.message || 'Помилка збереження', 'warn'); }
+}
+
+const pageHead = (title, sub, actions = '') =>
+  `<div class="page-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div>${actions ? `<div class="actions" style="margin:0">${actions}</div>` : ''}</div>`;
+
+const statCard = (label, value, ico, tone = '', sub = '') =>
+  `<div class="card stat"><div class="stat-top"><span>${label}</span><span class="stat-ico ${tone}">${icon(ico, 18)}</span></div><div class="stat-val">${value}</div><div class="stat-sub">${sub}</div></div>`;
+
+const emptyState = (ico, title, text = '') =>
+  `<div class="empty">${icon(ico, 34)}<b>${title}</b>${text ? `<span>${text}</span>` : ''}</div>`;
+
+function fillDatalist() {
+  $('#itemsDL').innerHTML = State.boot.items.map(i => `<option value="${esc(i.name)}" label="${esc(fmtMoney(i.price))}"></option>`).join('');
+}
+
+/* ==========================================================
+   AUTH
+   ========================================================== */
+function showAuth(msg) {
+  $('#boot').hidden = true; $('#app').hidden = true; $('#auth').hidden = false;
+  const err = $('#authErr');
+  err.hidden = !msg; err.textContent = msg || '';
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const login = $('#loginInput').value.trim(), password = $('#passInput').value;
+  await busy($('#loginBtn'), async () => {
+    try {
+      const d = await api('login', { login, password });
+      State.token = d.token; State.profile = d.profile;
+      try { localStorage.setItem(LS.token, d.token); } catch (_) {}
+      $('#passInput').value = '';
+      enterApp(d.state);
+    } catch (err) { showAuth(err.message); }
+  });
+}
+
+async function resumeSession() {
+  const t = (() => { try { return localStorage.getItem(LS.token); } catch (_) { return null; } })();
+  if (!t) return showAuth();
+  State.token = t;
+  try {
+    const s = await api('getBootstrap', {}, { silent: true });
+    enterApp(s);
+  } catch (e) {
+    if (e.code === 'AUTH') { State.token = null; try { localStorage.removeItem(LS.token); } catch (_) {} showAuth(); }
+    else { showAuth(e.message); }
+  }
+}
+
+function enterApp(state) {
+  State.profile = state.profile;
+  $('#boot').hidden = true; $('#auth').hidden = true; $('#app').hidden = false;
+  applyState(state, { render: false });
+  ensureCalc();
+  if (!location.hash) location.hash = '#/dashboard';
+  route();
+}
+
+function forceLogout(msg) { logout(); if (msg) toast(msg, 'warn'); }
+function logout() {
+  State.token = null; State.boot = null; State.profile = null; State.calc = null;
+  try { localStorage.removeItem(LS.token); } catch (_) {}
+  location.hash = '';
+  showAuth();
+}
+
+function applyState(s, { render = true } = {}) {
+  State.boot = s;
+  if (s.profile) State.profile = s.profile;
+  State.weekOffset = 0; State.weekData = s.statistics;
+  fillDatalist();
+  $('#sideNick').textContent = State.profile.nickname;
+  $('#sideAvatar').textContent = initials(State.profile.nickname);
+  if (render) renderPage();
+}
+
+/* ==========================================================
+   ROUTER / SHELL
+   ========================================================== */
+const NAV = [
+  { group: 'Робота', items: [
+    { id: 'dashboard', title: 'Dashboard', icon: 'dashboard' },
+    { id: 'calculator', title: 'Калькулятор', icon: 'calc' },
+    { id: 'treasures', title: 'Скарби', icon: 'gem' },
+    { id: 'sales', title: 'Продажі', icon: 'cash' },
+    { id: 'history', title: 'Історія', icon: 'history' },
+    { id: 'statistics', title: 'Статистика', icon: 'chart' } ] },
+  { group: 'Спільне', items: [
+    { id: 'leaderboard', title: 'Лідерборд', icon: 'trophy' },
+    { id: 'lists', title: 'Списки', icon: 'list' } ] },
+  { group: 'Акаунт', items: [
+    { id: 'profile', title: 'Профіль', icon: 'user' },
+    { id: 'settings', title: 'Налаштування', icon: 'settings' } ] }
+];
+const PAGES = {};
+NAV.forEach(g => g.items.forEach(i => PAGES[i.id] = i));
+
+function buildShell() {
+  $('#nav').innerHTML = NAV.map(g => `<div class="nav-group">${g.group}</div>` +
+    g.items.map(i => `<a class="nav-item" href="#/${i.id}" data-nav="${i.id}">${icon(i.icon, 19)}<span>${i.title}</span></a>`).join('')).join('');
+  $('#authMark').innerHTML = $('#sideMark').innerHTML = icon('gem', 20);
+  $('#burger').innerHTML = icon('menu', 22);
+  $('#logoutBtn').innerHTML = icon('logout', 18);
+  $('#pwToggle').innerHTML = icon('eye', 18);
+}
+
+function closeSidebar() { $('#sidebar').classList.remove('open'); document.body.classList.remove('nav-open'); }
+function navigate(id) { location.hash = '#/' + id; }
+
+function route() {
+  if (!State.boot) return;
+  const id = location.hash.replace(/^#\//, '') || 'dashboard';
+  State.page = PAGES[id] ? id : 'dashboard';
+  closeSidebar();
+  window.scrollTo(0, 0);
+  renderPage(true);
+}
+
+const RENDERERS = () => ({
+  dashboard: renderDashboard, calculator: renderCalculator, treasures: renderTreasures, sales: renderSales,
+  history: renderHistory, statistics: renderStatistics, leaderboard: renderLeaderboard, lists: renderLists,
+  profile: renderProfile, settings: renderSettings
+});
+
+function renderPage(animate) {
+  if (!State.boot) return;
+  const v = $('#view');
+  $('#pageTitle').textContent = PAGES[State.page].title;
+  $$('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.nav === State.page));
+  v.onclick = v.oninput = v.onchange = null;
+  v.innerHTML = '';
+  RENDERERS()[State.page](v);
+  if (animate) { v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); }
+}
+
+/* ==========================================================
+   DASHBOARD
+   ========================================================== */
+function renderDashboard(v) {
+  const B = State.boot, d = B.dashboard;
+  const incSub = B.config.incomeIncludesTreasureMoney
+    ? `Продажі ${fmtMoney(d.salesIncome)} + гроші зі скарбів ${fmtMoney(d.treasureMoney)}` : 'Від продажів';
+  v.innerHTML = pageHead(`Вітаємо, ${esc(State.profile.nickname)}`, 'Ваші витрати, скарби та продажі в одному місці',
+    `<button class="btn" data-go="treasures">${icon('gem', 17)} Новий скарб</button><button class="btn primary" data-go="sales">${icon('cash', 17)} Продати</button>`) +
+    `<div class="grid stats">
+      ${statCard('Загальний дохід', fmtMoney(d.income), 'trend', 'green', incSub)}
+      ${statCard('Загальні витрати', fmtMoney(d.expenses), 'wallet', 'red', 'Усе, що витрачено на пошуки')}
+      ${statCard('Чистий прибуток', `<span class="${d.profit < 0 ? 'neg' : d.profit > 0 ? 'pos' : ''}">${fmtMoney(d.profit)}</span>`, 'dollar', 'gold', 'Дохід мінус витрати')}
+      ${statCard('Продажі', d.salesCount, 'cash', 'blue', 'Усього угод')}
+      ${statCard('Скарби', d.treasuresCount, 'map', '', 'Відкрито скарбів')}
+      ${statCard('Коштовності', d.jewelsCount, 'gem', 'gold', 'Знайдено предметів')}
+    </div>
+    <div class="grid two">
+      <section class="card"><div class="card-h"><h2>Цей тиждень</h2><a class="chip" href="#/statistics">Детальніше</a></div>${chartSVG(B.statistics.days)}${chartLegend()}</section>
+      <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Останні продажі</h2><a class="chip" href="#/history">Уся історія</a></div>
+        ${B.sales.length ? `<div class="table-wrap"><table class="table mini"><tbody>${B.sales.slice(0, 6).map(s => `<tr><td><div class="cell-main">${esc(s.itemName)}</div><div class="cell-sub">${fmtDate(s.date)} ${fmtTime(s.time)}, x${s.quantity}</div></td><td class="r gold" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('cash', 'Продажів ще немає', 'Продайте першу коштовність у розділі «Продажі»')}
+      </section>
+    </div>
+    <section class="card"><div class="card-h"><h2>Останні скарби</h2><a class="chip" href="#/treasures">Усі скарби</a></div>
+      ${B.treasures.length ? B.treasures.slice(0, 3).map(t => `<div class="tr-log" style="padding:10px 0;border-top:1px solid var(--line);margin:0"><b>Скарб №${t.number}</b> <span class="muted">${fmtDate(t.date)}</span><br>${treasureLog(t)}</div>`).join('') : emptyState('gem', 'Скарбів ще немає', 'Додайте перший скарб у калькуляторі або розділі «Скарби»')}
+    </section>`;
+}
+
+/* ==========================================================
+   CHART (SVG, без бібліотек)
+   ========================================================== */
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function axisLabel(n) { return n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'k' : String(Math.round(n * 10) / 10); }
+function chartSVG(days) {
+  const W = 640, H = 260, pl = 46, pr = 10, pt = 14, pb = 30, iw = W - pl - pr, ih = H - pt - pb;
+  const max = niceMax(Math.max(1, ...days.flatMap(d => [d.income, d.expenses])));
+  const step = iw / days.length, bw = Math.min(22, step * .28);
+  let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Дохід і витрати по днях тижня">`;
+  for (let i = 0; i <= 4; i++) {
+    const y = pt + ih - ih * i / 4;
+    out += `<line class="grid-l" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text x="${pl - 8}" y="${y + 4}" text-anchor="end">${CONFIG.CURRENCY}${axisLabel(max * i / 4)}</text>`;
+  }
+  days.forEach((d, i) => {
+    const cx = pl + step * i + step / 2, hi = ih * d.income / max, he = ih * d.expenses / max;
+    out += `<g class="day"><title>${WEEKDAYS[d.weekday]}: дохід ${fmtMoney(d.income)}, витрати ${fmtMoney(d.expenses)}, прибуток ${fmtMoney(d.profit)}</title>
+      <rect class="hit" x="${cx - step / 2}" y="${pt}" width="${step}" height="${ih}"/>
+      ${d.income > 0 ? `<rect class="bar-in" x="${cx - bw - 1.5}" y="${pt + ih - hi}" width="${bw}" height="${hi}" rx="3"/>` : ''}
+      ${d.expenses > 0 ? `<rect class="bar-ex" x="${cx + 1.5}" y="${pt + ih - he}" width="${bw}" height="${he}" rx="3"/>` : ''}
+      <text x="${cx}" y="${H - 9}" text-anchor="middle">${WEEKDAYS_SHORT[d.weekday]}</text></g>`;
+  });
+  return out + '</svg>';
+}
+const chartLegend = () => `<div class="legend"><span><i style="background:var(--gold)"></i>Дохід</span><span><i style="background:#5b6478"></i>Витрати</span></div>`;
+
+/* ==========================================================
+   CALCULATOR
+   ========================================================== */
+const newDraft = () => ({ num: '', money: '', items: [{ name: '', qty: 1 }] });
+function defaultCalc() {
+  const exp = {}; CONFIG.EXPENSES.forEach(e => exp[e.key] = '');
+  return { exp, otherDesc: '', treasures: [newDraft()] };
+}
+const calcKey = () => LS.calc + '_' + (State.profile ? State.profile.id : 'x');
+function ensureCalc() {
+  const base = defaultCalc();
+  try {
+    const c = JSON.parse(localStorage.getItem(calcKey()));
+    if (c && c.exp && Array.isArray(c.treasures) && c.treasures.length) {
+      State.calc = { exp: { ...base.exp, ...c.exp }, otherDesc: c.otherDesc || '', treasures: c.treasures };
+      return;
+    }
+  } catch (_) {}
+  State.calc = base;
+}
+function saveCalc() {
+  try { localStorage.setItem(calcKey(), JSON.stringify({ exp: State.calc.exp, otherDesc: State.calc.otherDesc, treasures: State.calc.treasures })); } catch (_) {}
+}
+function draftTotals(d) {
+  let items = 0, unknown = 0;
+  d.items.forEach(it => {
+    if (!it.name.trim()) return;
+    const f = findItem(it.name);
+    if (f) items += f.price * Math.max(0, Math.floor(num(it.qty)));
+    else unknown++;
+  });
+  const money = Math.max(0, num(d.money));
+  return { money: round2(money), items: round2(items), unknown, total: round2(money + items) };
+}
+function calcTotals() {
+  const exp = round2(CONFIG.EXPENSES.reduce((a, e) => a + num(State.calc.exp[e.key]), 0));
+  const inc = round2(State.calc.treasures.reduce((a, d) => a + draftTotals(d).total, 0));
+  return { exp, inc, profit: round2(inc - exp) };
+}
+function updateCalcSummary() {
+  const t = calcTotals();
+  $$('[data-sum]').forEach(el => {
+    const k = el.dataset.sum;
+    el.textContent = fmtMoney(t[k === 'exp2' ? 'exp' : k]);
+    if (k === 'profit') el.className = t.profit < 0 ? 'neg' : t.profit > 0 ? 'pos' : '';
+  });
+}
+
+function renderCalculator(v) {
+  ensureCalcSafe();
+  const tab = State.calcTab;
+  v.innerHTML = pageHead('Калькулятор', 'Вводьте значення — підсумок перераховується одразу') + `
+    <div class="calc-summary">
+      <div class="sum-card"><span>Витрати</span><b data-sum="exp"></b></div>
+      <div class="sum-card"><span>Дохід</span><b data-sum="inc"></b></div>
+      <div class="sum-card profit"><span>Прибуток</span><b data-sum="profit"></b></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab ${tab === 'expenses' ? 'active' : ''}" data-tab="expenses" role="tab">${icon('wallet', 16)} Витрати</button>
+      <button class="tab ${tab === 'income' ? 'active' : ''}" data-tab="income" role="tab">${icon('gem', 16)} Дохід</button>
+    </div>
+    <div id="calcPane"></div>`;
+  drawCalcPane(v);
+  updateCalcSummary();
+}
+function ensureCalcSafe() { if (!State.calc) ensureCalc(); }
+
+function drawCalcPane(v) {
+  const pane = $('#calcPane', v);
+  v.onclick = async e => {
+    const tab = e.target.closest('[data-tab]');
+    if (tab) { State.calcTab = tab.dataset.tab; return renderCalculator(v); }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    const a = act.dataset.act;
+    if (a === 'clearExp') { CONFIG.EXPENSES.forEach(x => State.calc.exp[x.key] = ''); State.calc.otherDesc = ''; saveCalc(); renderCalculator(v); }
+    if (a === 'saveExp') await guard(act, saveExpenses);
+    if (a === 'addDraft') { State.calc.treasures.push(newDraft()); saveCalc(); drawCalcPane(v); updateCalcSummary(); }
+    if (a === 'clearDrafts') { State.calc.treasures.splice(0, State.calc.treasures.length, newDraft()); saveCalc(); drawCalcPane(v); updateCalcSummary(); }
+    if (a === 'saveDrafts') await guard(act, saveAllDrafts);
+  };
+  v.oninput = e => {
+    const k = e.target.dataset.exp;
+    if (k) { State.calc.exp[k] = e.target.value; updateCalcSummary(); saveCalc(); }
+    if (e.target.id === 'otherDesc') { State.calc.otherDesc = e.target.value; saveCalc(); }
+  };
+  if (State.calcTab === 'expenses') {
+    pane.innerHTML = `<section class="card">
+      <div class="form-grid">${CONFIG.EXPENSES.map(e => `<label class="field"><span>${e.label}</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" type="number" min="0" step="any" inputmode="decimal" placeholder="0" data-exp="${e.key}" value="${esc(State.calc.exp[e.key])}"></div></label>`).join('')}</div>
+      <label class="field"><span>Примітка до «Інші витрати» (необов’язково)</span><input class="input" id="otherDesc" maxlength="200" value="${esc(State.calc.otherDesc)}"></label>
+      <div class="row-total"><span>Загальні витрати</span><b data-sum="exp2"></b></div>
+      <div class="actions between"><button class="btn ghost" data-act="clearExp">Очистити</button><button class="btn primary" data-act="saveExp">${icon('check', 16)} Зберегти витрати</button></div>
+    </section>`;
+  } else {
+    pane.innerHTML = `<div id="draftRoot"></div>
+      <div class="actions between"><button class="btn" data-act="addDraft">${icon('plus', 16)} Додати скарб</button>
+      <div class="actions" style="margin:0"><button class="btn ghost" data-act="clearDrafts">Очистити</button><button class="btn primary" data-act="saveDrafts">${icon('check', 16)} Зберегти скарби</button></div></div>
+      <p class="hint">Вартість предметів береться зі спільної бази. Якщо предмета там немає, під час збереження система попросить вказати його ціну.</p>`;
+    const root = $('#draftRoot', pane);
+    const opts = { onChange: () => { updateCalcSummary(); saveCalc(); } };
+    bindDrafts(root, State.calc.treasures, opts);
+    renderDrafts(root, State.calc.treasures, opts);
+  }
+  updateCalcSummary();
+}
+
+async function saveExpenses() {
+  const list = CONFIG.EXPENSES.map(e => ({ category: e.label, amount: num(State.calc.exp[e.key]), description: e.key === 'other' ? State.calc.otherDesc : '' })).filter(e => e.amount > 0);
+  if (!list.length) { toast('Введіть хоча б одну витрату', 'warn'); return; }
+  const d = await api('addExpense', { expenses: list });
+  CONFIG.EXPENSES.forEach(e => State.calc.exp[e.key] = '');
+  State.calc.otherDesc = '';
+  saveCalc();
+  applyState(d.state);
+  toast(`Витрати збережено: ${fmtMoney(d.total)}`);
+}
+
+async function saveAllDrafts() {
+  const drafts = State.calc.treasures.filter(d => d.items.some(i => i.name.trim()) || num(d.money) > 0);
+  if (!drafts.length) { toast('Додайте гроші або предмети', 'warn'); return; }
+  let saved = 0;
+  for (const d of drafts) {
+    const r = await saveTreasureDraft(d);
+    if (!r) break;
+    saved++;
+    const idx = State.calc.treasures.indexOf(d);
+    if (idx > -1) State.calc.treasures.splice(idx, 1);
+    if (!State.calc.treasures.length) State.calc.treasures.push(newDraft());
+    saveCalc();
+    applyState(r.state);
+  }
+  if (saved) toast(saved > 1 ? `Скарби збережено: ${saved}` : 'Скарб збережено');
+}
+
+/* ---------- редактор скарбу (спільний для калькулятора і модального вікна) ---------- */
+function draftHTML(d, di, count) {
+  return `<div class="tcard" data-d="${di}">
+    <div class="tcard-h">
+      <div class="tnum"><span class="chip gold">${icon('gem', 14)} Скарб №</span><input class="input sm" type="number" min="1" step="1" data-f="num" value="${esc(d.num)}" placeholder="${nextTreasureNumber() + di}" aria-label="Номер скарбу"></div>
+      ${count > 1 ? `<button class="icon-btn" data-act="rmDraft" title="Видалити скарб" aria-label="Видалити скарб">${icon('trash', 16)}</button>` : ''}
+    </div>
+    <label class="field"><span>Отримані гроші</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" type="number" min="0" step="any" inputmode="decimal" placeholder="0" data-f="money" value="${esc(d.money)}"></div></label>
+    <div class="field"><span>Предмети</span>
+      <div class="irows">${d.items.map((it, ii) => `<div class="irow" data-i="${ii}">
+        <input class="input" list="itemsDL" data-f="name" placeholder="Назва предмета" value="${esc(it.name)}" autocomplete="off">
+        <input class="input" type="number" min="1" step="1" data-f="qty" value="${esc(it.qty)}" aria-label="Кількість">
+        <div class="iprice" data-price></div>
+        <button class="icon-btn" data-act="rmRow" title="Прибрати предмет" aria-label="Прибрати предмет">${icon('x', 16)}</button>
+      </div>`).join('')}</div>
+      <div><button class="btn ghost sm" data-act="addRow">${icon('plus', 14)} Додати предмет</button></div>
+    </div>
+    <div class="tfoot" data-foot></div>
+  </div>`;
+}
+
+function renderDrafts(root, drafts, opts) {
+  root.innerHTML = drafts.map((d, i) => draftHTML(d, i, drafts.length)).join('');
+  refreshDrafts(root, drafts, opts);
+}
+
+function refreshDrafts(root, drafts, opts) {
+  drafts.forEach((d, di) => {
+    const card = $(`.tcard[data-d="${di}"]`, root);
+    if (!card) return;
+    d.items.forEach((it, ii) => {
+      const cell = $(`.irow[data-i="${ii}"] [data-price]`, card);
+      if (!cell) return;
+      const name = it.name.trim();
+      if (!name) { cell.innerHTML = ''; return; }
+      const f = findItem(name), q = Math.max(0, Math.floor(num(it.qty)));
+      cell.innerHTML = f
+        ? `<b>${fmtMoney(f.price)}</b> × ${q} = <b>${fmtMoney(f.price * q)}</b>`
+        : `<button type="button" class="chip warn" data-act="newItem">Новий, вкажіть ціну</button>`;
+    });
+    const t = draftTotals(d);
+    $('[data-foot]', card).innerHTML = `<span>Гроші <b>${fmtMoney(t.money)}</b></span><span>Предмети <b>${fmtMoney(t.items)}</b></span><span>Разом <b class="gold">${fmtMoney(t.total)}</b></span>${t.unknown ? `<span class="gold">Без ціни: ${t.unknown}</span>` : ''}`;
+  });
+  opts && opts.onChange && opts.onChange();
+}
+
+function bindDrafts(root, drafts, opts) {
+  const locate = el => {
+    const card = el.closest('.tcard'), row = el.closest('.irow');
+    return { di: card ? +card.dataset.d : -1, ii: row ? +row.dataset.i : -1 };
+  };
+  root.addEventListener('input', e => {
+    const f = e.target.dataset.f; if (!f) return;
+    const { di, ii } = locate(e.target), d = drafts[di]; if (!d) return;
+    if (f === 'num' || f === 'money') d[f] = e.target.value;
+    else if (ii > -1 && d.items[ii]) d.items[ii][f] = e.target.value;
+    refreshDrafts(root, drafts, opts);
+  });
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const { di, ii } = locate(b), d = drafts[di]; if (!d) return;
+    const act = b.dataset.act;
+    if (act === 'addRow') d.items.push({ name: '', qty: 1 });
+    else if (act === 'rmRow') { d.items.splice(ii, 1); if (!d.items.length) d.items.push({ name: '', qty: 1 }); }
+    else if (act === 'rmDraft') drafts.splice(di, 1);
+    else if (act === 'newItem') {
+      const it = await askNewItem(d.items[ii].name.trim());
+      if (it) refreshDrafts(root, drafts, opts);
+      return;
+    } else return;
+    renderDrafts(root, drafts, opts);
+  });
+}
+
+/** Зберігає один скарб: для невідомих предметів показує вікно введення вартості. */
+async function saveTreasureDraft(d) {
+  const items = d.items.filter(i => i.name.trim()).map(i => ({ name: i.name.trim(), qty: Math.floor(num(i.qty)) }));
+  if (items.some(i => i.qty < 1)) { toast('Кількість кожного предмета має бути від 1', 'warn'); return null; }
+  if (num(d.money) <= 0 && !items.length) { toast('Додайте гроші або предмети', 'warn'); return null; }
+  for (const it of items) {
+    if (!findItem(it.name)) { const created = await askNewItem(it.name); if (!created) return null; }
+  }
+  return api('addTreasure', { number: d.num ? Math.floor(num(d.num)) : undefined, money: Math.max(0, num(d.money)), items });
+}
+
+/** Модальне вікно «Новий предмет» */
+function askNewItem(name) {
+  return new Promise(resolve => {
+    const m = openModal({
+      title: 'Новий предмет',
+      body: `<p class="muted mb">Цього предмета ще немає у спільній базі. Вкажіть вартість — вона буде доступна всім користувачам.</p>
+        <div class="field"><span>Предмет</span><div class="static">${esc(name)}</div></div>
+        <label class="field"><span>Категорія</span><input class="input" id="niCat" list="niCatDL" value="${esc(CONFIG.DEFAULT_CATEGORY)}" maxlength="60"><datalist id="niCatDL">${categories().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+        <label class="field"><span>Вкажіть вартість</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" id="niPrice" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></div></label>`,
+      actions: [
+        { label: 'Скасувати', kind: 'ghost', onClick: mm => mm.close() },
+        { label: 'Зберегти', kind: 'primary', onClick: (mm, btn) => save(mm, btn) }
+      ],
+      onClose: () => resolve(null),
+      onMount: mm => { $('#niPrice', mm.el).addEventListener('keydown', e => { if (e.key === 'Enter') $('.modal-f .primary', mm.el).click(); }); }
+    });
+    async function save(mm, btn) {
+      const price = $('#niPrice', mm.el).value;
+      if (price === '' || num(price) < 0) { toast('Вкажіть вартість предмета', 'warn'); return; }
+      await guard(btn, async () => {
+        const d = await api('addItem', { name, category: $('#niCat', mm.el).value, price: num(price) });
+        applyState(d.state, { render: false });
+        toast('Предмет додано до бази');
+        resolve(d.item);
+        mm.close();
+      });
+    }
+  });
+}
+
+/* ==========================================================
+   TREASURES
+   ========================================================== */
+function treasureLog(t) {
+  const m = t.money > 0 ? fmtMoney(t.money) : '';
+  const it = t.items || [], line = i => `${esc(i.name)} (x${i.qty})`;
+  if (!it.length) return `Ви знайшли ${m || fmtMoney(0)}.`;
+  if (it.length === 1) return `Ви знайшли ${m ? m + ' та ' : ''}${line(it[0])}.`;
+  return `Ви знайшли${m ? ' ' + m : ''}:<ul class="tr-list">${it.map(i => `<li>${line(i)}</li>`).join('')}</ul>`;
+}
+
+function renderTreasures(v) {
+  const list = State.boot.treasures;
+  v.innerHTML = pageHead('Скарби', 'Журнал усіх відкритих скарбів', `<button class="btn primary" data-act="new">${icon('plus', 16)} Новий скарб</button>`) +
+    (list.length ? list.map(t => `<article class="card tr-card">
+      <div class="tr-head"><div class="tr-title"><span class="ti">${icon('gem', 17)}</span>Скарб №${t.number}</div><span class="tr-when">${fmtDate(t.date)}, ${fmtTime(t.time)}</span><span class="tr-total gold">${fmtMoney(t.totalValue)}</span></div>
+      <p class="tr-log">${treasureLog(t)}</p>
+      ${t.items.length ? `<div class="table-wrap"><table class="table mini"><thead><tr><th>Предмет</th><th class="r">К-сть</th><th class="r">Ціна</th><th class="r">Вартість</th></tr></thead><tbody>${t.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">x${i.qty}</td><td class="r">${fmtMoney(i.price)}</td><td class="r">${fmtMoney(i.total)}</td></tr>`).join('')}${t.money > 0 ? `<tr><td colspan="3" class="muted">Отримані гроші</td><td class="r">${fmtMoney(t.money)}</td></tr>` : ''}</tbody></table></div>` : ''}
+    </article>`).join('') : `<div class="card">${emptyState('gem', 'Скарбів ще немає', 'Натисніть «Новий скарб», щоб додати перший запис')}</div>`);
+  v.onclick = e => { if (e.target.closest('[data-act="new"]')) openTreasureModal(); };
+}
+
+function openTreasureModal() {
+  const drafts = [newDraft()];
+  const m = openModal({
+    title: 'Новий скарб', size: 'lg',
+    body: `<div id="mDraft"></div><div class="row-total"><span>Загальна вартість скарбу</span><b id="mTotal"></b></div>`,
+    actions: [
+      { label: 'Скасувати', kind: 'ghost', onClick: mm => mm.close() },
+      { label: 'Зберегти скарб', kind: 'primary', onClick: (mm, btn) => guard(btn, async () => {
+          const r = await saveTreasureDraft(drafts[0]);
+          if (!r) return;
+          mm.close(); applyState(r.state); toast('Скарб збережено');
+        }) }
+    ],
+    onMount: mm => {
+      const root = $('#mDraft', mm.el);
+      const opts = { onChange: () => { $('#mTotal', mm.el).textContent = fmtMoney(draftTotals(drafts[0]).total); } };
+      bindDrafts(root, drafts, opts);
+      renderDrafts(root, drafts, opts);
+    }
+  });
+}
+
+/* ==========================================================
+   SALES
+   ========================================================== */
+function salesTable(list) {
+  if (!list.length) return emptyState('cash', 'Нічого не знайдено', 'Змініть фільтри або додайте новий продаж');
+  return `<div class="table-wrap"><table class="table stack"><thead><tr><th>Дата</th><th>Час</th><th>Коштовність</th><th class="r">К-сть</th><th class="r">Ціна за од.</th><th class="r">Сума</th></tr></thead><tbody>
+    ${list.map(s => `<tr><td data-label="Дата">${fmtDate(s.date)}</td><td data-label="Час">${fmtTime(s.time)}</td><td data-label="Коштовність" class="cell-main">${esc(s.itemName)}</td><td class="r" data-label="Кількість">x${s.quantity}</td><td class="r" data-label="Ціна за од.">${fmtMoney(s.price)}</td><td class="r gold" data-label="Сума" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function renderSales(v) {
+  const th = threshold();
+  v.innerHTML = pageHead('Продажі', 'Продайте коштовність і одразу побачте результат у прибутку') + `
+  <div class="sale-layout">
+    <section class="card">
+      <div class="card-h"><h2>Продати коштовність</h2></div>
+      <label class="field"><span>Коштовність</span><input class="input" id="saleItem" list="itemsDL" placeholder="Почніть вводити назву" autocomplete="off"></label>
+      <div class="item-info" id="saleInfo"></div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <label class="field"><span>Кількість</span><input class="input" id="saleQty" type="number" min="1" step="1" value="1"></label>
+        <label class="field"><span>Ціна за одиницю</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" id="salePrice" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></div></label>
+      </div>
+      <div class="sale-total"><span class="muted">Загальна сума</span><b id="saleTotal">${fmtMoney(0)}</b></div>
+      <div class="tg-note" id="saleTg">${icon('send', 18)}<span>Продажі від <b>${fmtMoney(th)}</b> автоматично потрапляють у Telegram-лог.</span></div>
+      <button class="btn primary block" id="saleBtn">${icon('cash', 17)} Продати</button>
+    </section>
+    <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Останні продажі</h2><a class="chip" href="#/history">Уся історія</a></div>
+      ${State.boot.sales.length ? salesTable(State.boot.sales.slice(0, 6)) : emptyState('cash', 'Продажів ще немає')}
+    </section>
+  </div>`;
+  const $i = $('#saleItem'), $q = $('#saleQty'), $p = $('#salePrice');
+  const recalc = () => {
+    const q = Math.floor(num($q.value)), p = num($p.value), tot = round2(Math.max(0, q) * Math.max(0, p));
+    $('#saleTotal').textContent = fmtMoney(tot);
+    $('#saleTg').classList.toggle('on', Math.round(tot * 100) >= Math.round(th * 100));
+  };
+  $i.addEventListener('input', () => {
+    const f = findItem($i.value);
+    $('#saleInfo').innerHTML = f ? `Категорія: ${esc(f.category)}. Ціна в базі: <b class="gold">${fmtMoney(f.price)}</b>` : ($i.value.trim() ? 'Такого предмета немає в базі — оберіть зі списку.' : '');
+    if (f) $p.value = f.price;
+    recalc();
+  });
+  $q.addEventListener('input', recalc); $p.addEventListener('input', recalc);
+  $('#saleBtn').onclick = e => guard(e.currentTarget, async () => {
+    const f = findItem($i.value);
+    if (!f) { toast('Оберіть коштовність зі списку', 'warn'); return; }
+    const qty = Math.floor(num($q.value)), price = num($p.value);
+    if (qty < 1) { toast('Вкажіть кількість', 'warn'); return; }
+    if (!(price > 0)) { toast('Вкажіть ціну продажу', 'warn'); return; }
+    const d = await api('addSale', { itemId: f.id, quantity: qty, price });
+    applyState(d.state);
+    toast('Продаж успішно додано');
+    if (d.telegram.sent) toast('Лог надіслано в Telegram');
+    else if (d.telegram.triggered) toast('Продаж збережено, але Telegram не відповів', 'warn');
+  });
+}
+
+/* ==========================================================
+   HISTORY
+   ========================================================== */
+function renderHistory(v) {
+  const h = State.hist;
+  v.innerHTML = pageHead('Історія продажів', 'Усі ваші продажі з пошуком, фільтрами та сортуванням') + `
+  <section class="card filters">
+    <div class="field grow"><span>Пошук</span><div class="input-affix search"><i>${icon('search', 16)}</i><input class="input" id="hQ" placeholder="Назва коштовності" value="${esc(h.q)}"></div></div>
+    <div class="field"><span>Період</span><select class="input" id="hPeriod">
+      ${[['all', 'Весь час'], ['today', 'Сьогодні'], ['7d', 'Останні 7 днів'], ['30d', 'Останні 30 днів'], ['month', 'Цей місяць'], ['custom', 'Свій діапазон']].map(([k, l]) => `<option value="${k}" ${h.period === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><span>Від</span><input class="input" type="date" id="hFrom" value="${h.from}"></div>
+    <div class="field"><span>До</span><input class="input" type="date" id="hTo" value="${h.to}"></div>
+    <div class="field"><span>Сортування</span><select class="input" id="hSort">
+      ${[['date_desc', 'Дата: спочатку нові'], ['date_asc', 'Дата: спочатку старі'], ['total_desc', 'Сума: більші'], ['total_asc', 'Сума: менші']].map(([k, l]) => `<option value="${k}" ${h.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <button class="btn ghost" id="hReset">Скинути</button>
+  </section>
+  <section class="card p0" id="hBody"></section>`;
+  const draw = () => {
+    let list = State.boot.sales.filter(s => (!h.q || norm(s.itemName).includes(norm(h.q))) && (!h.from || s.date >= h.from) && (!h.to || s.date <= h.to));
+    const cmp = { date_desc: (a, b) => (b.date + b.time).localeCompare(a.date + a.time) || b.id - a.id, date_asc: (a, b) => (a.date + a.time).localeCompare(b.date + b.time) || a.id - b.id, total_desc: (a, b) => b.total - a.total, total_asc: (a, b) => a.total - b.total }[h.sort];
+    list = list.slice().sort(cmp);
+    const sum = list.reduce((a, s) => a + s.total, 0);
+    $('#hBody').innerHTML = salesTable(list) + (list.length ? `<div class="table-foot"><span>Записів: ${list.length}</span><span>Разом <b>${fmtMoney(sum)}</b></span></div>` : '');
+  };
+  $('#hQ').oninput = e => { h.q = e.target.value; draw(); };
+  $('#hSort').onchange = e => { h.sort = e.target.value; draw(); };
+  $('#hPeriod').onchange = e => {
+    const p = h.period = e.target.value, t = todayISO();
+    if (p === 'all') { h.from = h.to = ''; }
+    if (p === 'today') { h.from = h.to = t; }
+    if (p === '7d') { h.from = addDays(t, -6); h.to = t; }
+    if (p === '30d') { h.from = addDays(t, -29); h.to = t; }
+    if (p === 'month') { h.from = t.slice(0, 8) + '01'; h.to = t; }
+    $('#hFrom').value = h.from; $('#hTo').value = h.to; draw();
+  };
+  const custom = () => { h.from = $('#hFrom').value; h.to = $('#hTo').value; h.period = 'custom'; $('#hPeriod').value = 'custom'; draw(); };
+  $('#hFrom').onchange = custom; $('#hTo').onchange = custom;
+  $('#hReset').onclick = () => { Object.assign(State.hist, { q: '', period: 'all', from: '', to: '', sort: 'date_desc' }); renderHistory(v); };
+  draw();
+}
+
+/* ==========================================================
+   STATISTICS
+   ========================================================== */
+function renderStatistics(v) {
+  const w = State.weekData || State.boot.statistics, t = w.totals;
+  v.innerHTML = pageHead('Тижнева статистика', 'Дохід, витрати та активність по днях',
+    `<div class="week-nav"><button class="icon-btn" data-w="-1" aria-label="Попередній тиждень">${icon('left', 18)}</button>
+     <span class="week-label">${fmtDateShort(w.from)} – ${fmtDate(w.to)}</span>
+     <button class="icon-btn" data-w="1" aria-label="Наступний тиждень" ${w.weekOffset >= 0 ? 'disabled' : ''}>${icon('right', 18)}</button>
+     ${w.weekOffset !== 0 ? `<button class="btn sm" data-w="0">Поточний</button>` : ''}</div>`) + `
+  <div class="grid stats">
+    ${statCard('Дохід', fmtMoney(t.income), 'trend', 'green')}
+    ${statCard('Витрати', fmtMoney(t.expenses), 'wallet', 'red')}
+    ${statCard('Прибуток', `<span class="${t.profit < 0 ? 'neg' : t.profit > 0 ? 'pos' : ''}">${fmtMoney(t.profit)}</span>`, 'dollar', 'gold')}
+    ${statCard('Продажі', t.salesCount, 'cash', 'blue')}
+    ${statCard('Скарби', t.treasuresCount, 'map')}
+    ${statCard('Коштовності', t.jewelsCount, 'gem', 'gold')}
+  </div>
+  <section class="card mb"><div class="card-h"><h2>Дохід і витрати по днях</h2></div>${chartSVG(w.days)}${chartLegend()}</section>
+  <section class="card p0"><div class="table-wrap"><table class="table stack"><thead><tr><th>День</th><th class="r">Дохід</th><th class="r">Витрати</th><th class="r">Прибуток</th><th class="r">Продажі</th><th class="r">Скарби</th></tr></thead><tbody>
+    ${w.days.map(d => `<tr><td data-label="День"><span class="cell-main">${WEEKDAYS[d.weekday]}</span> <span class="cell-sub">${fmtDateShort(d.date)}</span></td><td class="r" data-label="Дохід">${fmtMoney(d.income)}</td><td class="r" data-label="Витрати">${fmtMoney(d.expenses)}</td><td class="r ${d.profit < 0 ? 'neg' : d.profit > 0 ? 'pos' : ''}" data-label="Прибуток">${fmtMoney(d.profit)}</td><td class="r" data-label="Продажі">${d.salesCount}</td><td class="r" data-label="Скарби">${d.treasuresCount}</td></tr>`).join('')}
+  </tbody></table></div></section>`;
+  v.onclick = async e => {
+    const b = e.target.closest('[data-w]'); if (!b || b.disabled) return;
+    const off = b.dataset.w === '0' ? 0 : w.weekOffset + Number(b.dataset.w);
+    await guard(null, async () => {
+      State.weekData = off === 0 ? State.boot.statistics : await api('getStatistics', { weekOffset: off });
+      renderPage();
+    });
+  };
+}
+
+/* ==========================================================
+   LEADERBOARD
+   ========================================================== */
+function renderLeaderboard(v) {
+  const lb = State.boot.leaderboard, top = lb.top;
+  const medals = ['🥇', '🥈', '🥉'];
+  const pod = i => { const r = top[i]; return r ? `<div class="pod p${i + 1} ${r.isMe ? 'me' : ''}"><div class="medal">${medals[i]}</div><div class="nick">${esc(r.nickname)}${r.isMe ? '<span class="chip gold me-tag">Ви</span>' : ''}</div><div class="amt">${fmtMoney(r.total)}</div><div class="cnt">Продажів: ${r.salesCount}</div></div>` : '<div class="pod-empty"></div>'; };
+  v.innerHTML = pageHead('Лідерборд', 'Рейтинг за загальною сумою продажів') +
+    (top.length ? `<div class="podium">${pod(1)}${pod(0)}${pod(2)}</div>
+    ${top.length > 3 ? `<section class="card p0"><div class="table-wrap"><table class="table"><thead><tr><th style="width:70px">Місце</th><th>Нікнейм</th><th class="r">Продажів</th><th class="r">Сума продажів</th></tr></thead><tbody>
+      ${top.slice(3).map(r => `<tr class="${r.isMe ? 'me' : ''}"><td><span class="rank-num">${r.rank}</span></td><td class="cell-main">${esc(r.nickname)}${r.isMe ? '<span class="chip gold me-tag">Ви</span>' : ''}</td><td class="r">${r.salesCount}</td><td class="r gold" style="font-weight:800">${fmtMoney(r.total)}</td></tr>`).join('')}
+    </tbody></table></div></section>` : ''}`
+    : `<div class="card">${emptyState('trophy', 'Рейтинг поки порожній', 'Він з’явиться після перших продажів')}</div>`) +
+    `<p class="hint">${lb.me ? `Ваше місце: <b>${lb.me.rank}</b> з ${lb.participants}, сума продажів ${fmtMoney(lb.me.total)}.` : 'Зробіть перший продаж, щоб потрапити до рейтингу.'} Показуються лише нікнейми та суми продажів.</p>`;
+}
+
+/* ==========================================================
+   ITEMS (Списки)
+   ========================================================== */
+function renderLists(v) {
+  const L = State.listQ, cats = ['all', ...categories().sort()];
+  v.innerHTML = pageHead('Списки', 'Спільна база предметів і коштовностей для всіх користувачів', `<button class="btn primary" id="lAdd">${icon('plus', 16)} Додати предмет</button>`) + `
+  <section class="card filters">
+    <div class="field grow"><span>Пошук</span><div class="input-affix search"><i>${icon('search', 16)}</i><input class="input" id="lQ" placeholder="Назва предмета" value="${esc(L.q)}"></div></div>
+    <div class="field"><span>Категорія</span><select class="input" id="lCat">${cats.map(c => `<option value="${esc(c)}" ${L.cat === c ? 'selected' : ''}>${c === 'all' ? 'Усі категорії' : esc(c)}</option>`).join('')}</select></div>
+    <div class="field"><span>Сортування</span><select class="input" id="lSort">${[['name_asc', 'Назва: А → Я'], ['name_desc', 'Назва: Я → А'], ['price_desc', 'Ціна: дорожчі'], ['price_asc', 'Ціна: дешевші']].map(([k, l]) => `<option value="${k}" ${L.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+  </section>
+  <section class="card p0" id="lBody"></section>`;
+  const canEdit = State.boot.config.allowItemEdit;
+  const draw = () => {
+    let list = State.boot.items.filter(i => (!L.q || norm(i.name).includes(norm(L.q))) && (L.cat === 'all' || i.category === L.cat));
+    const cmp = { name_asc: (a, b) => a.name.localeCompare(b.name), name_desc: (a, b) => b.name.localeCompare(a.name), price_desc: (a, b) => b.price - a.price, price_asc: (a, b) => a.price - b.price }[L.sort];
+    list = list.slice().sort(cmp);
+    $('#lBody').innerHTML = list.length ? `<div class="table-wrap"><table class="table stack"><thead><tr><th>Назва</th><th>Категорія</th><th class="r">Вартість</th>${canEdit ? '<th style="width:56px"></th>' : ''}</tr></thead><tbody>
+      ${list.map(i => `<tr><td data-label="Назва" class="cell-main">${esc(i.name)}</td><td data-label="Категорія"><span class="chip">${esc(i.category)}</span></td><td class="r gold" data-label="Вартість" style="font-weight:800">${fmtMoney(i.price)}</td>${canEdit ? `<td class="nolabel"><button class="icon-btn" data-edit="${i.id}" aria-label="Редагувати">${icon('edit', 16)}</button></td>` : ''}</tr>`).join('')}
+    </tbody></table></div><div class="table-foot"><span>Предметів: ${list.length}</span></div>` : emptyState('list', 'Нічого не знайдено', 'Змініть пошук або додайте новий предмет');
+  };
+  $('#lQ').oninput = e => { L.q = e.target.value; draw(); };
+  $('#lCat').onchange = e => { L.cat = e.target.value; draw(); };
+  $('#lSort').onchange = e => { L.sort = e.target.value; draw(); };
+  $('#lAdd').onclick = () => openItemModal(null);
+  v.onclick = e => { const b = e.target.closest('[data-edit]'); if (b) openItemModal(State.boot.items.find(i => String(i.id) === b.dataset.edit)); };
+  draw();
+}
+
+function openItemModal(item) {
+  const isNew = !item;
+  openModal({
+    title: isNew ? 'Новий предмет' : 'Редагувати предмет',
+    body: `<label class="field"><span>Назва</span><input class="input" id="imName" maxlength="120" value="${esc(item ? item.name : '')}"></label>
+      <label class="field"><span>Категорія</span><input class="input" id="imCat" list="imCatDL" maxlength="60" value="${esc(item ? item.category : CONFIG.DEFAULT_CATEGORY)}"><datalist id="imCatDL">${categories().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+      <label class="field"><span>Вартість</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" id="imPrice" type="number" min="0" step="any" inputmode="decimal" value="${item ? item.price : ''}"></div></label>`,
+    actions: [
+      { label: 'Скасувати', kind: 'ghost', onClick: m => m.close() },
+      { label: 'Зберегти', kind: 'primary', onClick: (m, btn) => guard(btn, async () => {
+          const name = $('#imName', m.el).value.trim(), price = $('#imPrice', m.el).value;
+          if (!name) { toast('Вкажіть назву предмета', 'warn'); return; }
+          if (price === '') { toast('Вкажіть вартість предмета', 'warn'); return; }
+          const payload = { name, category: $('#imCat', m.el).value, price: num(price) };
+          const d = isNew ? await api('addItem', payload) : await api('updateItem', { id: item.id, ...payload });
+          m.close(); applyState(d.state);
+          toast(isNew ? (d.existed ? 'Такий предмет уже є в базі' : 'Предмет додано до бази') : 'Дані оновлено');
+        }) }
+    ]
+  });
+}
+
+/* ==========================================================
+   PROFILE
+   ========================================================== */
+function renderProfile(v) {
+  const p = State.profile;
+  v.innerHTML = pageHead('Профіль', 'Ваші особисті дані та безпека') + `
+  <div class="profile-grid">
+    <section class="card id-card">
+      <div class="avatar">${esc(initials(p.nickname))}</div>
+      <h2>${esc(p.nickname)}</h2><p class="muted mb">${esc((p.firstName + ' ' + p.lastName).trim() || 'Ім’я не вказано')}</p>
+      <div class="kv"><span>Логін для входу</span><b>${esc(p.login)}</b></div>
+      <div class="kv"><span>У системі з</span><b>${esc(fmtDate(p.createdAt) || '—')}</b></div>
+      <p class="hint" style="text-align:left">На лідерборді відображається лише ваш нікнейм.</p>
+    </section>
+    <div>
+      <section class="card mb"><div class="card-h"><h2>Особисті дані</h2></div>
+        <div class="form-grid">
+          <label class="field"><span>Нікнейм (публічний)</span><input class="input" id="pfNick" maxlength="60" value="${esc(p.nickname)}"></label>
+          <label class="field"><span>Ім’я</span><input class="input" id="pfFirst" maxlength="60" value="${esc(p.firstName)}"></label>
+          <label class="field"><span>Прізвище</span><input class="input" id="pfLast" maxlength="60" value="${esc(p.lastName)}"></label>
+        </div>
+        <div class="actions"><button class="btn primary" id="pfSave">Зберегти зміни</button></div>
+      </section>
+      <section class="card"><div class="card-h"><h2>Змінити пароль</h2></div>
+        <div class="form-grid">
+          <label class="field"><span>Поточний пароль</span><input class="input" id="pwOld" type="password" autocomplete="current-password"></label>
+          <label class="field"><span>Новий пароль</span><input class="input" id="pwNew" type="password" autocomplete="new-password"></label>
+          <label class="field"><span>Повторіть новий пароль</span><input class="input" id="pwNew2" type="password" autocomplete="new-password"></label>
+        </div>
+        <div class="actions"><button class="btn" id="pwSave">Оновити пароль</button></div>
+      </section>
+    </div>
+  </div>`;
+  $('#pfSave').onclick = e => guard(e.currentTarget, async () => {
+    const d = await api('updateProfile', { nickname: $('#pfNick').value, firstName: $('#pfFirst').value, lastName: $('#pfLast').value });
+    applyState(d.state); toast('Дані оновлено');
+  });
+  $('#pwSave').onclick = e => guard(e.currentTarget, async () => {
+    const a = $('#pwOld').value, b = $('#pwNew').value, c = $('#pwNew2').value;
+    if (!a || !b) { toast('Заповніть поточний і новий пароль', 'warn'); return; }
+    if (b !== c) { toast('Паролі не збігаються', 'warn'); return; }
+    const d = await api('updateProfile', { currentPassword: a, newPassword: b });
+    if (d.token) { State.token = d.token; try { localStorage.setItem(LS.token, d.token); } catch (_) {} }
+    applyState(d.state); toast('Пароль оновлено');
+  });
+}
+
+/* ==========================================================
+   SETTINGS
+   ========================================================== */
+function loadPrefs() { try { Object.assign(State.prefs, JSON.parse(localStorage.getItem(LS.prefs)) || {}); } catch (_) {} applyPrefs(); }
+function savePrefs() { try { localStorage.setItem(LS.prefs, JSON.stringify(State.prefs)); } catch (_) {} applyPrefs(); }
+function applyPrefs() { document.body.classList.toggle('compact', !!State.prefs.compact); document.body.classList.toggle('no-anim', !!State.prefs.noAnim); }
+
+function renderSettings(v) {
+  const sw = (id, title, text, on) => `<div class="switch-row"><div><b>${title}</b><p>${text}</p></div><label class="switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><i></i></label></div>`;
+  v.innerHTML = pageHead('Налаштування', 'Вигляд інтерфейсу та службові дії') + `
+  <div class="grid cols2">
+    <section class="card"><div class="card-h"><h2>Інтерфейс</h2></div>
+      ${sw('sCompact', 'Компактні таблиці', 'Менші відступи в рядках таблиць', State.prefs.compact)}
+      ${sw('sAnim', 'Вимкнути анімації', 'Прибирає переходи та рухи інтерфейсу', State.prefs.noAnim)}
+    </section>
+    <section class="card"><div class="card-h"><h2>Дані та сесія</h2></div>
+      <div class="kv" style="border-top:0"><span>Telegram-лог</span><b>продажі від ${fmtMoney(threshold())}</b></div>
+      <div class="kv"><span>Збереження</span><b>Google Sheets</b></div>
+      <div class="actions between" style="margin-top:18px"><button class="btn" id="sRefresh">${icon('refresh', 16)} Оновити дані</button><button class="btn danger" id="sLogout">${icon('logout', 16)} Вийти</button></div>
+      <div class="actions" style="margin-top:10px"><button class="btn ghost sm" id="sClearCalc">Очистити чернетку калькулятора</button></div>
+    </section>
+  </div>`;
+  $('#sCompact').onchange = e => { State.prefs.compact = e.target.checked; savePrefs(); };
+  $('#sAnim').onchange = e => { State.prefs.noAnim = e.target.checked; savePrefs(); };
+  $('#sRefresh').onclick = e => guard(e.currentTarget, async () => { applyState(await api('getBootstrap')); toast('Дані оновлено'); });
+  $('#sLogout').onclick = logout;
+  $('#sClearCalc').onclick = () => { State.calc = defaultCalc(); saveCalc(); toast('Чернетку очищено'); };
+}
+
+/* ==========================================================
+   INIT
+   ========================================================== */
+function bindGlobal() {
+  $('#loginForm').addEventListener('submit', doLogin);
+  $('#pwToggle').onclick = () => { const i = $('#passInput'); i.type = i.type === 'password' ? 'text' : 'password'; };
+  $('#logoutBtn').onclick = logout;
+  $('#burger').onclick = () => { $('#sidebar').classList.add('open'); document.body.classList.add('nav-open'); };
+  $('#scrim').onclick = closeSidebar;
+  window.addEventListener('hashchange', route);
+  document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) navigate(g.dataset.go); });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadPrefs();
+  buildShell();
+  bindGlobal();
+  resumeSession();
+});
+</script>
+</body>
+</html>
