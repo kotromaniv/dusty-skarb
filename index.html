@@ -586,7 +586,7 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
    CONFIG
    ========================================================== */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbz5vrWEyoculi5OTC6ZGp7dNofC909v8eZqFi5oKNJTMOFRxJrWLjNT8pQF6H2hiq7cJw/exec',   // ← вставте URL веб-додатку Apps Script
+  API_URL: 'https://script.google.com/macros/s/AKfycbwmxgFwuLoxITDhXv8XZfX_6u6zip7NQP2WL7UCNmCmbpuK9mwMiG9AnzC1a_eu1CZLhA/exec',   // ← вставте URL веб-додатку Apps Script
   CURRENCY: '$',
   TIMEZONE: 'Europe/Kiev',
   DEFAULT_CATEGORY: 'Коштовність',
@@ -598,7 +598,7 @@ const LS = { token: 'tl_token', calc: 'tl_calc2', prefs: 'tl_prefs' };
 const WEEKDAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота', 'Неділя'];
 const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 const ACT_TYPES = {
-  login: 'Вхід', hunt_start: 'Старт пошуку', hunt_finish: 'Завершення пошуку', hunt_force: 'Примусове завершення',
+  login: 'Вхід', hunt_start: 'Старт пошуку', hunt_finish: 'Завершення пошуку', hunt_force: 'Примусове завершення', hunt_restore: 'Відновлення пошуку',
   expense: 'Витрати', treasure: 'Скарб', map_failed: 'Карта не спрацювала', sale: 'Продаж', item: 'База предметів', admin: 'Дія адміна'
 };
 
@@ -733,7 +733,7 @@ const Loader = {
   hide() { this.n = Math.max(0, this.n - 1); if (!this.n) document.body.classList.remove('is-loading'); }
 };
 
-const MUTATING = new Set(['updateProfile', 'addItem', 'updateItem', 'startHunt', 'finishHunt', 'addTreasure', 'addSale', 'addSales', 'addExpense', 'adminUpdateUser', 'adminCreateUser', 'adminDeleteUser']);
+const MUTATING = new Set(['updateProfile', 'addItem', 'updateItem', 'startHunt', 'finishHunt', 'addTreasure', 'addSale', 'addSales', 'keepItems', 'restoreHunt', 'addExpense', 'adminUpdateUser', 'adminCreateUser', 'adminDeleteUser']);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const newRid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
 
@@ -1111,7 +1111,7 @@ function huntHero(h, { link = false } = {}) {
         <div><span>Карти</span><b>${h.mapsUsed}/${h.mapsTotal}</b><small>${mapsLeft > 0 ? `залишилось ${mapsLeft}` : 'усі використано'}${h.mapsFailed ? `, не спрацювало ${h.mapsFailed}` : ''}</small></div>
         <div><span>Витрати</span><b>${fmtMoney(h.expenses)}</b><small>на цей пошук</small></div>
         <div><span>Дохід</span><b>${fmtMoney(h.income)}</b><small>продажі ${fmtMoney(h.salesIncome)}${h.cash > 0 ? `, гроші ${fmtMoney(h.cash)}` : ''}</small></div>
-        <div><span>У рюкзаку</span><b>${fmtMoney(h.stockValue)}</b><small>${h.stockCount} шт. не продано</small></div>
+        <div><span>У рюкзаку</span><b>${fmtMoney(h.stockValue)}</b><small>${h.stockCount} шт. не оброблено</small></div><div><span>В інвентарі</span><b>${fmtMoney(h.inventoryValue || 0)}</b><small>${h.inventoryCount || 0} шт. залишено</small></div>
       </div>
     </div>
   </section>`;
@@ -1144,7 +1144,8 @@ function renderDashboard(v) {
       ${statCard('Чистий прибуток', `<span class="${tone(d.profit)}">${signed(d.profit)}</span>`, 'dollar', 'gold', d.stockValue > 0 ? `З урахуванням рюкзака: ${signed(d.potentialProfit != null ? d.potentialProfit : round2(d.profit + d.stockValue))}` : 'Дохід мінус витрати')}
       ${statCard('Загальний дохід', fmtMoney(d.income), 'trend', 'green', `Продажі ${fmtMoney(d.salesIncome)} + гроші зі скарбів ${fmtMoney(d.treasureMoney)}`)}
       ${statCard('Загальні витрати', fmtMoney(d.expenses), 'wallet', 'red', `Пошуків: ${d.huntsCount}`)}
-      ${statCard('Непродане в рюкзаку', fmtMoney(d.stockValue), 'box', 'blue', h ? `${d.stockCount} шт. за ціною з бази` : 'Немає активного пошуку')}
+      ${statCard('Непродане в рюкзаку', fmtMoney(d.stockValue), 'box', 'blue', h ? `${d.stockCount} шт. не оброблено` : 'Немає активного пошуку')}
+      ${statCard('Інвентар', fmtMoney(d.inventoryValue || 0), 'box', 'green', `${d.inventoryCount || 0} шт. залишено собі`)}
       ${statCard('Продажі', d.salesCount, 'cash', 'blue', `Продано предметів: ${d.itemsSold}`)}
       ${statCard('Скарби', d.treasuresCount, 'map', '', `Карт не спрацювало: ${d.failedCount}`)}
       ${statCard('Коштовності', d.jewelsCount, 'gem', 'gold', 'Знайдено предметів')}
@@ -1155,6 +1156,7 @@ function renderDashboard(v) {
         ${B.sales.length ? `<div class="table-wrap"><table class="table mini"><tbody>${B.sales.slice(0, 6).map(s => `<tr><td><div class="cell-main">${esc(s.itemName)}</div><div class="cell-sub">${fmtDate(s.date)} ${fmtTime(s.time)}, x${s.quantity}</div></td><td class="r gold" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('cash', 'Продажів ще немає', 'Вони зʼявляться після першого продажу з рюкзака')}
       </section>
     </div>
+    <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Мій інвентар</h2></div>${B.inventory && B.inventory.length ? `<div class="table-wrap"><table class="table mini"><tbody>${B.inventory.slice(0, 8).map(i => `<tr><td><div class="cell-main">${esc(i.name)}</div><div class="cell-sub">x${i.qty}</div></td><td class="r gold" style="font-weight:800">${fmtMoney(i.value)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('box', 'Інвентар порожній', 'Залишені предмети зʼявляться тут')} </section>
     <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Мої пошуки</h2><a class="chip" href="#/hunt">Усі пошуки</a></div>${huntsTable(B.hunts.slice(0, 5))}</section>`;
   bindChart($('#dbChart'), B.statistics.days);
 }
@@ -1528,15 +1530,15 @@ function openSaleModal(pre) {
           for (const r of rows) {
             const st = cur.stock.find(x => String(x.itemId) === String(r.s.itemId));
             if (!st) { toast(`«${r.s.name}» більше немає в рюкзаку`, 'warn'); return; }
-            if (r.act === 'keep') { keep.push({ name: r.s.name, quantity: st.qty }); continue; }
+            if (r.act === 'keep') { const q = Math.floor(num(r.qty)); if (q < 1 || q > st.qty) { toast(`Кількість для «${r.s.name}» має бути від 1 до ${st.qty}`, 'warn'); return; } keep.push({ itemId: r.s.itemId, name: r.s.name, quantity: q }); continue; }
             const q = Math.floor(num(r.qty)), p = num(r.price);
             if (q < 1) { toast(`Кількість для «${r.s.name}» має бути від 1`, 'warn'); return; }
             if (q > st.qty) { toast(`«${r.s.name}»: у рюкзаку лише ${st.qty} шт.`, 'warn'); return; }
             if (!(p > 0)) { toast(`Вкажіть ціну для «${r.s.name}»`, 'warn'); return; }
             lines.push({ itemId: r.s.itemId, name: r.s.name, quantity: q, price: p });
-            if (q < st.qty) keep.push({ name: r.s.name, quantity: st.qty - q });
+            if (q < st.qty) keep.push({ itemId: r.s.itemId, name: r.s.name, quantity: st.qty - q });
           }
-          if (!lines.length) { toast('Оберіть хоча б один предмет для продажу', 'warn'); return; }
+          if (!lines.length && !keep.length) { toast('Оберіть хоча б один предмет для продажу або інвентарю', 'warn'); return; }
           m.close();
           submitSales(lines, keep);
         }) }
@@ -1548,7 +1550,7 @@ function openSaleModal(pre) {
         rows.forEach((r, i) => {
           const el = $(`.sl-row[data-i="${i}"]`, root), keepIt = r.act === 'keep';
           el.classList.toggle('keep', keepIt);
-          $$('input', el).forEach(x => { x.disabled = keepIt; });
+          $$('input[data-f="price"]', el).forEach(x => { x.disabled = keepIt; });
           const q = Math.max(0, Math.min(r.s.qty, Math.floor(num(r.qty)))), c = Math.round(q * cents(r.price));
           $('[data-sum]', el).textContent = keepIt ? '—' : fmtMoney(c / 100);
           if (keepIt) kept++; else { tot += c; n++; if (c >= cents(th)) big = true; }
@@ -1557,7 +1559,7 @@ function openSaleModal(pre) {
         $('#slLabel', m.el).textContent = `До продажу: ${n} з ${rows.length}${kept ? `, залишається в рюкзаку: ${kept}` : ''}`;
         $('#slTg', m.el).classList.toggle('on', big);
         const b = $('.modal-f .primary', m.el);
-        if (b) { b.textContent = n ? `Продати вибране (${n})` : 'Нічого не вибрано'; b.disabled = !n; }
+        if (b) { b.textContent = n ? `Зберегти: продати ${n}${kept ? `, в інвентар ${kept}` : ''}` : (kept ? `Зберегти в інвентар (${kept})` : 'Нічого не вибрано'); b.disabled = !n && !kept; }
       };
       root.addEventListener('input', e => {
         const f = e.target.dataset.f, row = e.target.closest('.sl-row'); if (!f || !row) return;
@@ -1614,6 +1616,25 @@ function optimisticSale(lines) {
   applyState(B, { render: true, soft: true });
 }
 
+function optimisticKeep(keepItems) {
+  if (!keepItems || !keepItems.length) return;
+  const B = JSON.parse(JSON.stringify(State.boot)), h = B.activeHunt; if (!h) return;
+  let qtyAll = 0, valueC = 0;
+  keepItems.forEach(k => {
+    const s = h.stock.find(x => String(x.itemId) === String(k.itemId)); if (!s) return;
+    const q = Math.max(0, Math.min(s.qty, Math.floor(num(k.quantity)))); if (!q) return;
+    s.qty -= q; qtyAll += q; valueC += q * cents(s.price);
+    const ex = (B.inventory || []).find(x => String(x.itemId) === String(k.itemId) && String(x.huntId) === String(h.id) && x.status === 'inventory');
+    if (ex) { ex.qty += q; ex.value = round2(ex.value + q * s.price); }
+    else (B.inventory || (B.inventory = [])).unshift({ id: 'tmpinv' + Date.now() + Math.random(), userId: State.profile.id, huntId: h.id, itemId: k.itemId, name: s.name, qty: q, price: s.price, value: round2(q * s.price), status: 'inventory' });
+  });
+  h.stock = h.stock.filter(s => s.qty > 0);
+  const apply = x => { x.stock = h.stock.map(s => ({...s})); x.stockCount = Math.max(0, x.stockCount - qtyAll); x.stockValue = Math.max(0, round2(x.stockValue - valueC / 100)); x.inventoryCount = (x.inventoryCount || 0) + qtyAll; x.inventoryValue = round2((x.inventoryValue || 0) + valueC / 100); x.potentialProfit = round2(x.income + x.inventoryValue - x.expenses); const reasons = ((x.finish && x.finish.reasons) || []).filter(r => !/^Не оброблено/.test(r) && !/^Не продано/.test(r)); if (x.stockCount > 0) reasons.push('Не оброблено предметів: ' + x.stockCount + ' (продайте або залиште в інвентарі)'); x.finish = { canFinish: !reasons.length, reasons }; };
+  const hh = (B.hunts || []).find(x => String(x.id) === String(h.id)); apply(h); if (hh && hh !== h) apply(hh);
+  B.dashboard.inventoryCount = (B.dashboard.inventoryCount || 0) + qtyAll; B.dashboard.inventoryValue = round2((B.dashboard.inventoryValue || 0) + valueC / 100); B.dashboard.stockCount = h.stockCount; B.dashboard.stockValue = h.stockValue; B.dashboard.potentialProfit = round2(B.dashboard.profit + B.dashboard.inventoryValue);
+  applyState(B, { render: true, soft: true });
+}
+
 async function legacySales(lines) {
   let last = null; const tg = { triggered: false, sent: false, error: null };
   for (const l of lines) {
@@ -1623,12 +1644,12 @@ async function legacySales(lines) {
   return { state: last.state, telegram: tg };
 }
 
-async function submitSales(lines, keep) {
+async function submitSales(lines, keepItems) {
   State.pending++;
-  optimisticSale(lines); burst('💰');
+  optimisticSale(lines); optimisticKeep(keepItems); burst('💰');
   let d = null, err = null;
   try {
-    const payload = { lines: lines.map(l => ({ itemId: l.itemId, quantity: l.quantity, price: l.price })), keep };
+    const payload = { lines: lines.map(l => ({ itemId: l.itemId, quantity: l.quantity, price: l.price })), keepItems: (keepItems || []).map(k => ({ itemId: k.itemId, name: k.name, quantity: k.quantity })) };
     try { d = await api('addSales', payload); }
     catch (e) { if (/Невідома дія/i.test(e.message || '')) d = await legacySales(lines); else throw e; }
   } catch (e) { err = e; }
@@ -1715,8 +1736,8 @@ async function finishFlow() {
   const ok = await confirmModal({
     title: ready ? 'Завершити пошук?' : 'Завершити примусово?',
     text: ready
-      ? `Усі карти використано, рюкзак порожній. Підсумок: витрати ${fmtMoney(h.expenses)}, дохід ${fmtMoney(h.income)}, результат <b class="${tone(h.profit)}">${signed(h.profit)}</b>.`
-      : `Пошук ще не готовий: ${h.finish.reasons.map(esc).join('; ')}. Як адміністратор ви можете завершити його примусово, непродані предмети буде втрачено з обліку.`,
+      ? `Усі карти використано, усі предмети продані або залишені в інвентарі. Продано: ${h.soldCount || 0}, в інвентарі: ${h.inventoryCount || 0}. Підсумок: витрати ${fmtMoney(h.expenses)}, дохід ${fmtMoney(h.income)}, результат <b class="${tone(h.profit)}">${signed(h.profit)}</b>.`
+      : `Пошук ще не готовий: ${h.finish.reasons.map(esc).join('; ')}. Як адміністратор ви можете завершити його примусово.`,
     ok: ready ? 'Завершити' : 'Завершити примусово', kind: ready ? 'primary' : 'danger'
   });
   if (!ok) return;
@@ -2194,7 +2215,7 @@ function renderSettings(v) {
 /* ==========================================================
    АДМІН-ПАНЕЛЬ (керування акаунтами + повний облік дій)
    ========================================================== */
-const ACT_EMOJI = { login: '🔑', hunt_start: '🧭', hunt_finish: '🏁', hunt_force: '⛔', expense: '💸', treasure: '💎', map_failed: '🗺️', sale: '💰', item: '📦', admin: '🛡️' };
+const ACT_EMOJI = { login: '🔑', hunt_start: '🧭', hunt_finish: '🏁', hunt_force: '⛔', hunt_restore: '↩️', expense: '💸', treasure: '💎', map_failed: '🗺️', sale: '💰', item: '📦', admin: '🛡️' };
 const ADMIN_TABS = [['overview', '📈', 'Огляд'], ['users', '👥', 'Учасники'], ['hunts', '🧭', 'Пошуки'], ['activity', '🕵️', 'Активність']];
 
 const uName = u => u.nickname || u.login || '—';
@@ -2271,6 +2292,7 @@ function renderAdmin(v) {
     if ((b = t.closest('[data-uedit]'))) return openUserForm(State.admin.byId.get(b.dataset.uedit));
     if ((b = t.closest('[data-ublock]'))) return adminToggleBlock(b.dataset.ublock);
     if ((b = t.closest('[data-fin]'))) return adminFinish(+b.dataset.fin);
+    if ((b = t.closest('[data-restore]'))) return adminRestore(+b.dataset.restore);
     if (t.closest('#adExport')) return exportActivity();
     if ((b = t.closest('[data-more]'))) {
       if (b.dataset.more === 'act') State.adm.alim += PAGE_SIZE; else if (b.dataset.more === 'hunts') State.adm.hlim += PAGE_SIZE;
@@ -2388,7 +2410,7 @@ function adminHuntsList(A) {
     ${list.slice(0, n).map(h => `<tr><td class="cell-main" data-label="Учасник">${esc(h.nickname)}<div class="cell-sub">пошук №${h.id}</div></td><td data-label="Старт">${fmtDate(h.startDate)}<div class="cell-sub">${fmtTime(h.startTime)}</div></td><td data-label="Статус">${huntBadge(h)}${h.endDate ? `<div class="cell-sub">${fmtDate(h.endDate)} ${fmtTime(h.endTime)}</div>` : ''}</td>
       <td class="r" data-label="Карти">${h.mapsUsed}/${h.mapsTotal}<div class="cell-sub">не спрацювало: ${h.mapsFailed}</div></td><td class="r" data-label="Витрати">${fmtMoney(h.expenses)}</td><td class="r" data-label="Дохід">${fmtMoney(h.income)}</td><td class="r ${tone(h.profit)}" data-label="Результат" style="font-weight:800">${signed(h.profit)}</td>
       <td class="r" data-label="Непродано">${h.stockCount ? `${h.stockCount} шт.<div class="cell-sub">${fmtMoney(h.stockValue)}</div>` : '—'}</td>
-      <td class="r nolabel">${h.status === 'active' ? `<button class="btn sm ${h.finish.canFinish ? '' : 'danger'}" data-fin="${h.id}">${icon('flag', 14)} Завершити</button>` : ''}</td></tr>`).join('')}
+      <td class="r nolabel">${h.status === 'active' ? `<button class="btn sm ${h.finish.canFinish ? '' : 'danger'}" data-fin="${h.id}">${icon('flag', 14)} Завершити</button>` : `<button class="btn sm" data-restore="${h.id}">↩️ Відновити</button>`}</td></tr>`).join('')}
   </tbody></table></div>${moreBtn(n, list.length, 'hunts')}<div class="table-foot"><span>Показано: ${n} з ${list.length}</span></div>`;
 }
 
@@ -2521,6 +2543,18 @@ async function adminFinish(id) {
     const d = await api('finishHunt', { huntId: id, force: !ready });
     applyState(d.state, { render: false });
     await loadAdmin(true); toast('Пошук завершено');
+    if (State.page === 'admin' && $('#adBody')) drawAdmin(false);
+  });
+}
+
+async function adminRestore(id) {
+  const h = State.admin.hunts.find(x => Number(x.id) === id); if (!h || h.status === 'active') return;
+  const ok = await confirmModal({ title: 'Відновити пошук?', text: `Пошук №${h.id} буде повернуто до стану безпосередньо перед завершенням. Нові продажі, предмети та Telegram-логи не створюватимуться.`, ok: 'Відновити', kind: 'primary' });
+  if (!ok) return;
+  await guard(null, async () => {
+    const d = await adminApi('restoreHunt', { huntId: id });
+    if (d.state) applyState(d.state, { render: false });
+    await loadAdmin(true); toast('Пошук відновлено');
     if (State.page === 'admin' && $('#adBody')) drawAdmin(false);
   });
 }
