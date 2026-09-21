@@ -9,8 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://script.google.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Philosopher:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
+
 :root{
   --bg:#12100d; --bg2:#1a1712; --card:#201c15; --card2:#28231a; --line:#382f22;
   --text:#efe6d2; --muted:#a09479; --gold:#e0b04a; --gold-d:#b98a2a;
@@ -340,7 +341,7 @@ body.compact .table td,body.compact .table th{padding-top:6px;padding-bottom:6px
   --green:#4fe0a0;--red:#ff6b7a;--blue:#5cc8ff;--purple:#b58cff;
   --glow:0 0 0 1px rgba(255,201,74,.3),0 12px 40px -12px rgba(255,201,74,.45);
   --font:'Nunito','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
-  --display:'Cinzel',Georgia,'Times New Roman',serif;
+  --display:'Philosopher',Georgia,'Times New Roman',serif;
 }
 *{scrollbar-width:thin;scrollbar-color:#1d4456 transparent}
 ::selection{background:rgba(255,201,74,.35)}
@@ -422,7 +423,7 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
 #view.enter .grid.stats>.card:nth-child(2){animation-delay:.06s}#view.enter .grid.stats>.card:nth-child(3){animation-delay:.12s}
 #view.enter .grid.stats>.card:nth-child(4){animation-delay:.18s}#view.enter .grid.stats>.card:nth-child(5){animation-delay:.24s}
 #view.enter .grid.stats>.card:nth-child(6){animation-delay:.3s}#view.enter .grid.stats>.card:nth-child(7){animation-delay:.36s}
-.stat-val{font-family:var(--display);letter-spacing:.01em}
+.stat-val{font-family:var(--font);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:0}
 .stat-ico{background:rgba(255,255,255,.05)}
 .table tbody tr{transition:background .15s}
 .table tbody tr:hover td{background:rgba(255,201,74,.045)}
@@ -441,7 +442,7 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
 /* hunt hero */
 .hunt-hero{position:relative;overflow:hidden;background:radial-gradient(600px 240px at 100% 0,rgba(255,201,74,.18),transparent 60%),linear-gradient(180deg,#163444,#0f2734);border-color:rgba(255,201,74,.5);box-shadow:var(--glow)}
 .hunt-hero::after{content:"🧭";position:absolute;right:14px;bottom:-18px;font-size:130px;opacity:.07;animation:spin 60s linear infinite;pointer-events:none}
-.hh-val{font-family:var(--display)}
+.hh-val{font-family:var(--font);font-variant-numeric:tabular-nums}
 .progress i{background:linear-gradient(90deg,#d99a1c,#ffc94a,#ffe9a3,#ffc94a,#d99a1c);background-size:200% 100%;animation:shine 3s linear infinite}
 .progress.ok i{background:linear-gradient(90deg,#2fbf80,#4fe0a0,#a6ffd6,#4fe0a0,#2fbf80);background-size:200% 100%}
 .start-ic{font-size:0;background:radial-gradient(circle,rgba(255,201,74,.25),transparent 70%);animation:bob 3s ease-in-out infinite}
@@ -495,7 +496,26 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
 .input-affix.pw .icon-btn{font-size:16px}
 
 @media (prefers-reduced-motion:reduce){.fx,.burst{display:none}}
+
+/* ===== v3: продаж, шкала графіка, дрібні виправлення ===== */
+.sl-head,.sl-row{display:grid;grid-template-columns:1.4fr 1.3fr 72px 116px 92px;gap:10px;align-items:center}
+.sl-head{color:var(--muted);font-size:12.5px;padding:0 0 6px}
+.sl-row{padding:9px 0;border-top:1px solid var(--line);transition:opacity .2s}
+.sl-row.keep{opacity:.62}
+.sl-name small{display:block;color:var(--muted);font-size:12px}
+.sl-sum{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.sl-quick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sl-row select.input{padding-right:6px}
+.chart text.empty-l{fill:var(--muted);font-size:14px}
+.sum-card b,.amt,.tr-total{font-variant-numeric:tabular-nums}
+@media (max-width:820px){
+  .sl-head{display:none}
+  .sl-row{grid-template-columns:1fr 1fr}
+  .sl-name{grid-column:1/-1}
+  .sl-sum{text-align:left}
+}
 </style>
+</head>
 </head>
 <body>
 
@@ -561,6 +581,7 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
 <div id="modalRoot"></div>
 
 <script>
+
 /* ==========================================================
    CONFIG
    ========================================================== */
@@ -591,10 +612,10 @@ const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); retu
 const cents = n => Math.round(num(n) * 100);
 const round2 = n => Math.round(cents(n)) / 100;
 const lineSum = (q, p) => Math.round(num(q) * cents(p)) / 100;
-const fmtMoney = n => { n = round2(n); return (n < 0 ? '-' : '') + CONFIG.CURRENCY + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); };
+const fmtMoney = n => { n = round2(n); const a = Math.abs(n); return (n < 0 ? '-' : '') + CONFIG.CURRENCY + a.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(a) ? 0 : 2, maximumFractionDigits: 2 }); };
 const signed = n => (round2(n) > 0 ? '+' : '') + fmtMoney(n);
 const tone = n => (round2(n) > 0 ? 'pos' : round2(n) < 0 ? 'neg' : '');
-const fmtShort = v => { const a = Math.abs(v), s = a >= 10000 ? (a / 1000).toFixed(1) + 'k' : String(Math.round(a * 100) / 100); return (v < 0 ? '-' : '') + CONFIG.CURRENCY + s; };
+const fmtShort = v => { const a = Math.abs(v); let s; if (a >= 1e6) s = (a / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'; else if (a >= 1000) s = (a / 1000).toFixed(1).replace(/\.0$/, '') + 'k'; else s = String(Math.round(a * 100) / 100); return (v < 0 ? '-' : '') + CONFIG.CURRENCY + s; };
 const fmtDate = iso => { if (!iso) return ''; const [y, m, d] = String(iso).slice(0, 10).split('-'); return `${d}.${m}.${y}`; };
 const fmtDateShort = iso => { const [, m, d] = String(iso).split('-'); return `${d}.${m}`; };
 const fmtTime = t => String(t || '').slice(0, 5);
@@ -694,8 +715,8 @@ const State = {
   stats: { mode: 'week', series: 'both', data: null, sel: undefined, from: '', to: '' },
   hist: { q: '', period: 'all', from: '', to: '', sort: 'date_desc', limit: PAGE_SIZE },
   listQ: { q: '', cat: 'all', sort: 'name_asc' },
-  admin: null, adminTab: 'overview', adminUser: 'all', itemIdx: null, huntLimit: 8,
-  adm: { ts: 0, live: false, timer: null, uq: '', ust: 'all', hq: '', hu: 'all', hst: 'all', hlim: PAGE_SIZE, au: 'all', atype: 'all', afrom: '', ato: '', aq: '', alim: PAGE_SIZE },
+  admin: null, adminTab: 'overview', adminUser: 'all', itemIdx: null, huntLimit: 8, pending: 0, rev: { g: null, u: null }, lastSync: 0,
+  adm: { ts: 0, live: true, rev: null, timer: null, uq: '', ust: 'all', hq: '', hu: 'all', hst: 'all', hlim: PAGE_SIZE, au: 'all', atype: 'all', afrom: '', ato: '', aq: '', alim: PAGE_SIZE },
   prefs: { compact: false, noAnim: false }
 };
 const findItem = name => { const k = norm(name); if (!k) return null; return State.itemIdx ? (State.itemIdx.get(k) || null) : State.boot.items.find(i => norm(i.name) === k) || null; };
@@ -712,14 +733,28 @@ const Loader = {
   hide() { this.n = Math.max(0, this.n - 1); if (!this.n) document.body.classList.remove('is-loading'); }
 };
 
-async function api(action, payload = {}, { silent = false } = {}) {
+const MUTATING = new Set(['updateProfile', 'addItem', 'updateItem', 'startHunt', 'finishHunt', 'addTreasure', 'addSale', 'addSales', 'addExpense', 'adminUpdateUser', 'adminCreateUser', 'adminDeleteUser']);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const newRid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+
+async function api(action, payload = {}, { silent = false, retry = true } = {}) {
   if (/ВАШ_|YOUR_/.test(CONFIG.API_URL)) throw new ApiError('Вкажіть адресу Apps Script (API_URL) у CONFIG всередині index.html');
   if (!silent) Loader.show();
   try {
-    let res;
-    try {
-      res = await fetch(CONFIG.API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify({ action, token: State.token, ...payload }) });
-    } catch (e) { throw new ApiError('Немає зв’язку із сервером. Перевірте інтернет і адресу API.'); }
+    const mut = MUTATING.has(action);
+    // зміни повторюємо лише коли сервер вміє відсікати дублікати (rid); читання повторюємо завжди
+    const canRetry = retry && (!mut || !!(State.boot && State.boot.config && State.boot.config.idempotent));
+    const body = JSON.stringify({ action, token: State.token, rid: mut ? newRid() : undefined, ...payload });
+    let res, attempt = 0;
+    for (;;) {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 35000);
+      try { res = await fetch(CONFIG.API_URL, { method: 'POST', redirect: 'follow', body, signal: ctl.signal }); clearTimeout(tm); break; }
+      catch (e) {
+        clearTimeout(tm);
+        if (canRetry && attempt < 2) { attempt++; await sleep(450 * attempt); continue; }
+        throw new ApiError(e && e.name === 'AbortError' ? 'Сервер не відповів вчасно. Спробуйте ще раз.' : 'Немає зв’язку із сервером. Перевірте інтернет і адресу API.');
+      }
+    }
     let json;
     try { json = await res.json(); } catch (e) { throw new ApiError('Сервер повернув некоректну відповідь. Перевірте розгортання Apps Script.'); }
     if (!json.success) {
@@ -946,23 +981,28 @@ function enterApp(state) {
   ensureCalc();
   if (!location.hash) location.hash = '#/dashboard';
   route();
+  Live.start();
 }
 
 function forceLogout(msg) { logout(); if (msg) toast(msg, 'warn'); }
 function logout() {
-  clearBootCache(); stopAdminLive();
+  clearBootCache(); Live.stop();
   State.token = null; State.boot = null; State.profile = null; State.calc = null; State.admin = null;
   try { localStorage.removeItem(LS.token); } catch (_) {}
   location.hash = '';
   showAuth();
 }
 
-function applyState(s, { render = true } = {}) {
+function applyState(s, { render = true, soft = false } = {}) {
   State.boot = s;
   State.itemIdx = new Map((s.items || []).map(i => [norm(i.name), i]));
+  State.lastSync = Date.now();
+  if (s.meta && s.meta.rev !== undefined) State.rev = { g: s.meta.rev, u: s.meta.urev };
   cacheBoot();
   if (s.profile) State.profile = s.profile;
-  State.stats.data = s.statistics; State.stats.mode = 'week'; State.stats.sel = undefined;
+  const st = State.stats;
+  if (!soft) { st.data = s.statistics; st.mode = 'week'; st.sel = undefined; }
+  else if (st.mode === 'week' && !(st.data && st.data.weekOffset)) st.data = s.statistics;   // не збиваємо вибраний період
   $('#sideNick').textContent = State.profile.nickname;
   $('#sideAvatar').textContent = initials(State.profile.nickname);
   const nav = $('[data-nav="hunt"]');
@@ -1032,7 +1072,12 @@ function renderPage(animate) {
   $$('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.nav === State.page));
   v.onclick = v.oninput = v.onchange = null;
   v.innerHTML = '';
-  RENDERERS()[State.page](v);
+  try { RENDERERS()[State.page](v); }
+  catch (e) {
+    console.error(e);
+    v.innerHTML = `<div class="card">${emptyState('alert', 'Не вдалося показати сторінку', 'Оновіть дані або перезавантажте сторінку')}<div class="actions" style="justify-content:center"><button class="btn primary" id="errReload">🔄 Оновити</button></div></div>`;
+    const b = $('#errReload'); if (b) b.onclick = () => location.reload();
+  }
   if (animate) { v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); }
 }
 
@@ -1096,7 +1141,7 @@ function renderDashboard(v) {
       : `<button class="btn primary" data-open="startHunt">${icon('play', 16)} Почати пошук скарбів</button>`) +
     (h ? huntHero(h, { link: true }) : '') +
     `<div class="grid stats">
-      ${statCard('Чистий прибуток', `<span class="${tone(d.profit)}">${signed(d.profit)}</span>`, 'dollar', 'gold', 'Дохід мінус витрати')}
+      ${statCard('Чистий прибуток', `<span class="${tone(d.profit)}">${signed(d.profit)}</span>`, 'dollar', 'gold', d.stockValue > 0 ? `З урахуванням рюкзака: ${signed(d.potentialProfit != null ? d.potentialProfit : round2(d.profit + d.stockValue))}` : 'Дохід мінус витрати')}
       ${statCard('Загальний дохід', fmtMoney(d.income), 'trend', 'green', `Продажі ${fmtMoney(d.salesIncome)} + гроші зі скарбів ${fmtMoney(d.treasureMoney)}`)}
       ${statCard('Загальні витрати', fmtMoney(d.expenses), 'wallet', 'red', `Пошуків: ${d.huntsCount}`)}
       ${statCard('Непродане в рюкзаку', fmtMoney(d.stockValue), 'box', 'blue', h ? `${d.stockCount} шт. за ціною з бази` : 'Немає активного пошуку')}
@@ -1117,40 +1162,45 @@ function renderDashboard(v) {
 /* ==========================================================
    ГРАФІК (SVG, без бібліотек)
    ========================================================== */
-function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+/** Шкала з «круглими» позначками; нуль завжди лежить на лінії сітки. */
+function chartScale(all) {
+  const mx0 = Math.max(0, ...all), mn0 = Math.min(0, ...all);
+  if (mx0 === 0 && mn0 === 0) return { mn: 0, mx: 100, step: 25, empty: true };
+  const step = niceStep((mx0 - mn0) / 4);
+  return { mn: Math.floor(mn0 / step + 1e-9) * step, mx: Math.ceil(mx0 / step - 1e-9) * step, step, empty: false };
+}
 
 function chartSVG(days, series = 'both', sel = null) {
-  const W = 720, H = 300, pl = 54, pr = 12, pt = 24, pb = 42, iw = W - pl - pr, ih = H - pt - pb, n = days.length;
+  const W = 720, H = 300, pl = 54, pr = 12, pt = 24, pb = 42, iw = W - pl - pr, ih = H - pt - pb, n = Math.max(1, days.length);
   const valsOf = d => series === 'both' ? [d.income, d.expenses] : series === 'income' ? [d.income] : series === 'expenses' ? [d.expenses] : [d.profit];
-  const all = days.flatMap(valsOf);
-  let mx = Math.max(0, ...all), mn = Math.min(0, ...all);
-  mx = mx > 0 ? niceMax(mx) : (mn < 0 ? 0 : 1);
-  mn = mn < 0 ? -niceMax(-mn) : 0;
+  const sc = chartScale(days.flatMap(valsOf)), mn = sc.mn, mx = sc.mx;
   const span = mx - mn, y = v => pt + ih * (mx - v) / span, y0 = y(0);
-  const step = iw / n, m = series === 'both' ? 2 : 1;
-  const bw = Math.max(3, Math.min(m === 2 ? 26 : 40, step * (m === 2 ? .36 : .58)));
+  const stepX = iw / n, m = series === 'both' ? 2 : 1, gap = stepX > 16 ? 3 : 1;
+  const bw = Math.max(1.5, Math.min(m === 2 ? 26 : 40, (stepX * 0.78 - gap * (m - 1)) / m));
   const showVals = n <= 10;
   let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Графік по днях">`;
-  for (let i = 0; i <= 4; i++) {
-    const v = mn + span * i / 4, yy = y(v);
-    out += `<line class="grid-l" x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${yy + 4}" text-anchor="end">${fmtShort(v)}</text>`;
+  const ticks = Math.round(span / sc.step);
+  for (let i = 0; i <= ticks; i++) {
+    const v = Math.round((mn + sc.step * i) * 100) / 100, yy = y(v);
+    out += `<line class="${v === 0 ? 'zero-l' : 'grid-l'}" x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${yy + 4}" text-anchor="end">${fmtShort(v)}</text>`;
   }
-  out += `<line class="zero-l" x1="${pl}" x2="${W - pr}" y1="${y0}" y2="${y0}"/>`;
+  if (sc.empty) out += `<text class="empty-l" x="${W / 2}" y="${pt + ih / 2}" text-anchor="middle">Даних за цей період немає</text>`;
   const every = Math.ceil(n / 12);
   days.forEach((d, i) => {
-    const cx = pl + step * i + step / 2;
+    const cx = pl + stepX * i + stepX / 2;
     out += `<g class="day ${sel === d.date ? 'sel' : ''}" data-i="${i}">
-      <rect class="selbg" x="${cx - step / 2}" y="${pt}" width="${step}" height="${ih}"/>`;
+      <rect class="selbg" x="${cx - stepX / 2}" y="${pt}" width="${stepX}" height="${ih}"/>`;
     valsOf(d).forEach((v, k) => {
       const cls = series === 'profit' ? (v >= 0 ? 'bar-pos' : 'bar-neg') : (series === 'both' ? (k === 0 ? 'bar-in' : 'bar-ex') : (series === 'income' ? 'bar-in' : 'bar-ex'));
-      const x = cx - (m * bw + (m - 1) * 3) / 2 + k * (bw + 3);
+      const x = cx - (m * bw + (m - 1) * gap) / 2 + k * (bw + gap);
       const top = v >= 0 ? y(v) : y0, h = Math.max(v === 0 ? 0 : 2, Math.abs(y(v) - y0));
-      if (v !== 0) out += `<rect class="${cls}" x="${x}" y="${top}" width="${bw}" height="${h}" rx="3"/>`;
+      if (v !== 0) out += `<rect class="${cls}" x="${x}" y="${top}" width="${bw}" height="${h}" rx="${bw > 6 ? 3 : 1}"/>`;
       if (showVals && v !== 0) out += `<text class="val" x="${x + bw / 2}" y="${v >= 0 ? top - 5 : top + h + 12}" text-anchor="middle">${fmtShort(v)}</text>`;
     });
     if (n <= 10) out += `<text x="${cx}" y="${H - 22}" text-anchor="middle" class="xl">${WEEKDAYS_SHORT[d.weekday]}</text><text x="${cx}" y="${H - 8}" text-anchor="middle" class="xs">${fmtDateShort(d.date)}</text>`;
     else if (i % every === 0) out += `<text x="${cx}" y="${H - 14}" text-anchor="middle" class="xs">${fmtDateShort(d.date)}</text>`;
-    out += `<rect class="hit" x="${cx - step / 2}" y="${pt}" width="${step}" height="${ih + pb - 8}"/></g>`;
+    out += `<rect class="hit" x="${cx - stepX / 2}" y="${pt}" width="${stepX}" height="${ih + pb - 8}"/></g>`;
   });
   return out + '</svg>';
 }
@@ -1451,53 +1501,209 @@ function openSaleModal(pre) {
   const h = State.boot.activeHunt;
   if (!h) { toast('Спершу розпочніть пошук скарбів', 'warn'); return navigate('hunt'); }
   if (!h.stock.length) { toast('У рюкзаку немає предметів для продажу', 'warn'); return; }
-  const th = threshold();
+  const th = threshold(), pk = norm(pre || '');
+  // за замовчуванням усе продається; якщо відкрили через кнопку конкретного предмета, продається лише він
+  const rows = h.stock.map(s => ({ s, act: !pk || norm(s.name) === pk ? 'sell' : 'keep', qty: String(s.qty), price: String(s.price) }));
+  const rowHTML = (r, i) => `<div class="sl-row" data-i="${i}">
+      <div class="sl-name"><b>${esc(r.s.name)}</b><small>${esc(r.s.category)} · у рюкзаку ×${r.s.qty}</small></div>
+      <select class="input" data-f="act" aria-label="Дія"><option value="sell" ${r.act === 'sell' ? 'selected' : ''}>💰 Продати</option><option value="keep" ${r.act === 'keep' ? 'selected' : ''}>🎒 Залишити в інвентарі</option></select>
+      <input class="input" type="number" min="1" max="${r.s.qty}" step="1" data-f="qty" value="${esc(r.qty)}" aria-label="Кількість">
+      <div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" type="number" min="0" step="any" inputmode="decimal" data-f="price" value="${esc(r.price)}" aria-label="Ціна за одиницю"></div>
+      <div class="sl-sum" data-sum></div>
+    </div>`;
   openModal({
-    title: 'Продати коштовність',
-    body: `<label class="field"><span>Коштовність із рюкзака</span><input class="input" id="smItem" data-ac="stock" placeholder="Почніть вводити назву…" autocomplete="off" spellcheck="false" value="${esc(pre || '')}"></label>
-      <div class="item-info" id="smInfo"></div>
-      <div class="form-grid" style="grid-template-columns:1fr 1fr">
-        <label class="field"><span>Кількість</span><input class="input" id="smQty" type="number" min="1" step="1" value="1"></label>
-        <label class="field"><span>Ціна за одиницю</span><div class="input-affix"><i>${CONFIG.CURRENCY}</i><input class="input" id="smPrice" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></div></label>
-      </div>
-      <div class="sale-total"><span class="muted">Загальна сума</span><b id="smTotal">${fmtMoney(0)}</b></div>
-      <div class="tg-note" id="smTg">${icon('send', 18)}<span>Продажі від <b>${fmtMoney(th)}</b> автоматично потрапляють у Telegram-лог.</span></div>`,
+    title: 'Продаж із рюкзака', size: 'lg',
+    body: `<p class="muted mb">Для кожного предмета оберіть дію: <b>продати</b> або <b>залишити в інвентарі</b>. За замовчуванням усе продається; кількість і ціну можна змінити.</p>
+      <div class="sl-quick"><button type="button" class="chip" data-all="sell">✅ Усе — продати</button><button type="button" class="chip" data-all="keep">🎒 Усе — залишити</button></div>
+      <div class="sl-head"><span>Предмет</span><span>Дія</span><span>К-сть</span><span>Ціна за од.</span><span class="r">Сума</span></div>
+      <div id="slRows">${rows.map(rowHTML).join('')}</div>
+      <div class="sale-total"><span class="muted" id="slLabel"></span><b id="slTotal"></b></div>
+      <div class="tg-note" id="slTg">${icon('send', 18)}<span>Позиції на суму від <b>${fmtMoney(th)}</b> автоматично потрапляють у Telegram-лог.</span></div>`,
     actions: [
       { label: 'Скасувати', kind: 'ghost', onClick: m => m.close() },
-      { label: 'Продати', kind: 'primary', onClick: (m, btn) => guard(btn, async () => {
-          const cur = State.boot.activeHunt, s = cur && cur.stock.find(x => norm(x.name) === norm($('#smItem', m.el).value));
-          if (!s) { toast('Оберіть коштовність зі списку рюкзака', 'warn'); return; }
-          const qty = Math.floor(num($('#smQty', m.el).value)), price = num($('#smPrice', m.el).value);
-          if (qty < 1) { toast('Вкажіть кількість', 'warn'); return; }
-          if (qty > s.qty) { toast(`У рюкзаку лише ${s.qty} шт.`, 'warn'); return; }
-          if (!(price > 0)) { toast('Вкажіть ціну продажу', 'warn'); return; }
-          const itemId = s.itemId;
-          const d = await api('addSale', { itemId, quantity: qty, price });
-          m.close(); applyState(d.state);
-          toast('Продаж успішно додано'); burst('💰');
-          if (d.telegram.sent) toast('Лог надіслано в Telegram');
-          else if (d.telegram.triggered) toast('Продаж збережено, але Telegram не відповів: ' + (d.telegram.error || 'невідома помилка'), 'warn');
+      { label: 'Продати вибране', kind: 'primary', onClick: (m, btn) => guard(btn, async () => {
+          const cur = State.boot.activeHunt;
+          if (!cur) { toast('Пошук уже завершено', 'warn'); return; }
+          const lines = [], keep = [];
+          for (const r of rows) {
+            const st = cur.stock.find(x => String(x.itemId) === String(r.s.itemId));
+            if (!st) { toast(`«${r.s.name}» більше немає в рюкзаку`, 'warn'); return; }
+            if (r.act === 'keep') { keep.push({ name: r.s.name, quantity: st.qty }); continue; }
+            const q = Math.floor(num(r.qty)), p = num(r.price);
+            if (q < 1) { toast(`Кількість для «${r.s.name}» має бути від 1`, 'warn'); return; }
+            if (q > st.qty) { toast(`«${r.s.name}»: у рюкзаку лише ${st.qty} шт.`, 'warn'); return; }
+            if (!(p > 0)) { toast(`Вкажіть ціну для «${r.s.name}»`, 'warn'); return; }
+            lines.push({ itemId: r.s.itemId, name: r.s.name, quantity: q, price: p });
+            if (q < st.qty) keep.push({ name: r.s.name, quantity: st.qty - q });
+          }
+          if (!lines.length) { toast('Оберіть хоча б один предмет для продажу', 'warn'); return; }
+          m.close();
+          submitSales(lines, keep);
         }) }
     ],
     onMount: m => {
-      const $i = $('#smItem', m.el), $q = $('#smQty', m.el), $p = $('#smPrice', m.el);
-      const cur = () => State.boot.activeHunt?.stock.find(x => norm(x.name) === norm($i.value));
-      const recalc = () => {
-        const tot = lineSum(Math.max(0, Math.floor(num($q.value))), $p.value);
-        $('#smTotal', m.el).textContent = fmtMoney(tot);
-        $('#smTg', m.el).classList.toggle('on', cents(tot) >= cents(th));
+      const root = $('#slRows', m.el);
+      const refresh = () => {
+        let tot = 0, n = 0, big = false, kept = 0;
+        rows.forEach((r, i) => {
+          const el = $(`.sl-row[data-i="${i}"]`, root), keepIt = r.act === 'keep';
+          el.classList.toggle('keep', keepIt);
+          $$('input', el).forEach(x => { x.disabled = keepIt; });
+          const q = Math.max(0, Math.min(r.s.qty, Math.floor(num(r.qty)))), c = Math.round(q * cents(r.price));
+          $('[data-sum]', el).textContent = keepIt ? '—' : fmtMoney(c / 100);
+          if (keepIt) kept++; else { tot += c; n++; if (c >= cents(th)) big = true; }
+        });
+        $('#slTotal', m.el).textContent = fmtMoney(tot / 100);
+        $('#slLabel', m.el).textContent = `До продажу: ${n} з ${rows.length}${kept ? `, залишається в рюкзаку: ${kept}` : ''}`;
+        $('#slTg', m.el).classList.toggle('on', big);
+        const b = $('.modal-f .primary', m.el);
+        if (b) { b.textContent = n ? `Продати вибране (${n})` : 'Нічого не вибрано'; b.disabled = !n; }
       };
-      const onItem = () => {
-        const s = cur();
-        $('#smInfo', m.el).innerHTML = s ? `У рюкзаку: <b>${s.qty} шт.</b>. Ціна в базі: <b class="gold">${fmtMoney(s.price)}</b>` : ($i.value.trim() ? 'Такого предмета немає в рюкзаку.' : '');
-        if (s) { $p.value = s.price; $q.max = s.qty; if (num($q.value) > s.qty || !num($q.value)) $q.value = s.qty; }
-        recalc();
-      };
-      $i.addEventListener('input', onItem); $q.addEventListener('input', recalc); $p.addEventListener('input', recalc);
-      if (pre) onItem();
+      root.addEventListener('input', e => {
+        const f = e.target.dataset.f, row = e.target.closest('.sl-row'); if (!f || !row) return;
+        rows[+row.dataset.i][f] = e.target.value; refresh();
+      });
+      $('.modal-b', m.el).addEventListener('click', e => {
+        const b = e.target.closest('[data-all]'); if (!b) return;
+        rows.forEach((r, i) => { r.act = b.dataset.all; $(`.sl-row[data-i="${i}"] select`, root).value = r.act; });
+        refresh();
+      });
+      refresh();
     }
   });
 }
+
+/* ---------- миттєвий відгук: інтерфейс оновлюється одразу, сервер підтверджує у фоні ---------- */
+function nowTime() { return new Intl.DateTimeFormat('en-GB', { timeZone: CONFIG.TIMEZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date()); }
+
+function optimisticSale(lines) {
+  const B = JSON.parse(JSON.stringify(State.boot)), h = B.activeHunt; if (!h) return;
+  const date = todayISO(), time = nowTime();
+  let totC = 0, qtyAll = 0, baseC = 0;
+  lines.forEach(l => {
+    const s = h.stock.find(x => String(x.itemId) === String(l.itemId)); if (!s) return;
+    const c = Math.round(l.quantity * cents(l.price));
+    totC += c; qtyAll += l.quantity; baseC += l.quantity * cents(s.price);
+    s.qty -= l.quantity; s.value = round2(s.qty * s.price);
+    B.sales.unshift({ id: 'tmp' + Date.now() + Math.random(), date, time, itemId: l.itemId, itemName: s.name, quantity: l.quantity, price: l.price, total: c / 100, huntId: h.id });
+  });
+  h.stock = h.stock.filter(s => s.qty > 0);
+  const apply = x => {
+    x.stock = h.stock.map(s => ({ ...s }));
+    x.stockCount = Math.max(0, x.stockCount - qtyAll);
+    x.stockValue = Math.max(0, round2(x.stockValue - baseC / 100));
+    x.salesIncome = round2(x.salesIncome + totC / 100); x.income = round2(x.income + totC / 100); x.profit = round2(x.profit + totC / 100);
+    x.toBreakEven = Math.max(0, round2(x.expenses - x.income));
+    x.toBreakEvenAfterStock = Math.max(0, round2(x.expenses - x.income - x.stockValue));
+    if (x.potentialProfit !== undefined) x.potentialProfit = round2(x.income + x.stockValue - x.expenses);
+    const reasons = ((x.finish && x.finish.reasons) || []).filter(r => !/^Не продано/.test(r));
+    if (x.stockCount > 0) reasons.push('Не продано предметів: ' + x.stockCount);
+    x.finish = { canFinish: !reasons.length, reasons };
+  };
+  const hh = (B.hunts || []).find(x => String(x.id) === String(h.id));
+  apply(h); if (hh && hh !== h) apply(hh);
+  const D = B.dashboard;
+  D.salesIncome = round2(D.salesIncome + totC / 100); D.income = round2(D.income + totC / 100); D.profit = round2(D.profit + totC / 100);
+  D.salesCount += lines.length; D.itemsSold += qtyAll; D.stockCount = h.stockCount; D.stockValue = h.stockValue;
+  if (D.potentialProfit !== undefined) D.potentialProfit = round2(D.profit + D.stockValue);
+  const S = B.statistics, day = S.days.find(x => x.date === date);
+  if (day) {
+    day.income = round2(day.income + totC / 100); day.profit = round2(day.profit + totC / 100); day.salesCount += lines.length;
+    S.totals.income = round2(S.totals.income + totC / 100); S.totals.profit = round2(S.totals.profit + totC / 100); S.totals.salesCount += lines.length;
+  }
+  applyState(B, { render: true, soft: true });
+}
+
+async function legacySales(lines) {
+  let last = null; const tg = { triggered: false, sent: false, error: null };
+  for (const l of lines) {
+    last = await api('addSale', { itemId: l.itemId, quantity: l.quantity, price: l.price });
+    const t = last.telegram; if (t) { tg.triggered = tg.triggered || t.triggered; tg.sent = tg.sent || t.sent; tg.error = tg.error || t.error; }
+  }
+  return { state: last.state, telegram: tg };
+}
+
+async function submitSales(lines, keep) {
+  State.pending++;
+  optimisticSale(lines); burst('💰');
+  let d = null, err = null;
+  try {
+    const payload = { lines: lines.map(l => ({ itemId: l.itemId, quantity: l.quantity, price: l.price })), keep };
+    try { d = await api('addSales', payload); }
+    catch (e) { if (/Невідома дія/i.test(e.message || '')) d = await legacySales(lines); else throw e; }
+  } catch (e) { err = e; }
+  State.pending--;
+  if (err) {
+    toast(err.message || 'Не вдалося зберегти продаж', 'warn');
+    if (!State.pending) refreshBoot(true).catch(() => {});      // повертаємо справжній стан із сервера
+    return;
+  }
+  if (!State.pending) applyState(d.state, { soft: true });
+  toast(lines.length > 1 ? `Продано позицій: ${lines.length}` : 'Продаж успішно додано');
+  const tg = d.telegram;
+  if (tg && tg.sent) toast('Лог надіслано в Telegram');
+  else if (tg && tg.triggered) toast('Продаж збережено, але Telegram не відповів: ' + (tg.error || 'невідома помилка'), 'warn');
+}
+
+/* ---------- живі оновлення: сайт опитує лічильник змін і підвантажує дані лише коли щось відбулося ---------- */
+let renderTimer = 0;
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  const go = () => {
+    if (!State.boot) return;
+    const ae = document.activeElement;
+    const typing = ae && ae !== document.body && $('#view').contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
+    if ($('#modalRoot').childElementCount || typing) { renderTimer = setTimeout(go, 1200); return; }   // не заважаємо вводу
+    renderPage();
+  };
+  go();
+}
+
+async function refreshBoot(force) {
+  const s = await api('getBootstrap', {}, { silent: true });
+  if (State.pending && !force) return;
+  applyState(s, { render: false, soft: true });
+  if (State.page !== 'admin') scheduleRender();
+}
+
+const Live = {
+  t: null, busy: false, off: false,
+  interval() {
+    const c = (State.boot && State.boot.config) || {};
+    const fast = isAdmin() && State.page === 'admin' && State.adm.live;
+    return Math.max(1500, fast ? (c.pollAdminMs || 3000) : (c.pollUserMs || 10000));
+  },
+  start() { this.stop(); this.off = false; if (State.token) this.loop(); },
+  stop() { clearTimeout(this.t); this.t = null; },
+  loop() {
+    clearTimeout(this.t);
+    if (!State.token || this.off) return;
+    this.t = setTimeout(async () => { await this.tick(); this.loop(); }, this.interval());
+  },
+  kick() {
+    if (!State.token || !State.boot || this.off) return;
+    clearTimeout(this.t);
+    if (Date.now() - State.lastSync > 90000) refreshBoot().catch(() => {});
+    this.tick().finally(() => this.loop());
+  },
+  async tick() {
+    if (this.busy || document.hidden || !State.boot || State.pending) return;
+    this.busy = true;
+    try {
+      const r = await api('getRev', { uid: State.profile.id }, { silent: true, retry: false });
+      if (State.rev.g == null) State.rev = { g: r.g, u: r.u };
+      const adminView = isAdmin() && State.page === 'admin';
+      if (adminView && State.adm.rev == null) State.adm.rev = r.g;
+      const jobs = [];
+      if (adminView && r.g !== State.adm.rev) jobs.push(loadAdmin(true, true).then(() => { if (State.page === 'admin' && $('#adBody')) drawAdmin(false); }));
+      const own = r.u !== State.rev.u, glob = r.g !== State.rev.g && State.page === 'leaderboard';
+      if (own || glob) jobs.push(refreshBoot());
+      await Promise.all(jobs);
+    } catch (e) {
+      if (/Невідома дія/i.test((e && e.message) || '')) this.off = true;   // старий бекенд без live: просто вимикаємо
+    } finally { this.busy = false; }
+  }
+};
 
 /* ==========================================================
    ЗАВЕРШЕННЯ ПОШУКУ
@@ -2004,6 +2210,7 @@ function prepAdmin(A) {
   A.act = (A.activity || []).map(a => ({ ...a, _k: String(a.date || '') + String(a.time || ''), _s: norm((a.nickname || '') + ' ' + (a.text || '') + ' ' + (ACT_TYPES[a.type] || a.type)) }))
     .sort((a, b) => b._k.localeCompare(a._k));
   A.byId = new Map(A.users.map(u => [String(u.id), u]));
+  if (A.meta) { State.adm.rev = A.meta.g; State.rev.u = A.meta.u; }   // власні дії адміна не викликають зайвих оновлень
   return A;
 }
 
@@ -2027,19 +2234,14 @@ async function adminApi(action, payload) {
   }
 }
 
-function startAdminLive() { stopAdminLive(); State.adm.timer = setInterval(adminLiveTick, 30000); }
-function stopAdminLive() { clearInterval(State.adm.timer); State.adm.timer = null; }
-function adminLiveTick() {
-  if (State.page !== 'admin' || document.hidden) return;
-  loadAdmin(true, true).then(() => { if (State.page === 'admin' && $('#adBody')) drawAdmin(false); }).catch(() => {});
-}
+function startAdminLive() { Live.loop(); }
+function stopAdminLive() { Live.loop(); }     // інтервал сам підлаштовується під поточну сторінку
 function toggleLive() {
   const S = State.adm; S.live = !S.live;
-  S.live ? startAdminLive() : stopAdminLive();
   const b = $('#adLive');
-  if (b) { b.classList.toggle('primary', S.live); b.textContent = S.live ? '🟢 Live: увімкнено' : '⚪ Live: вимкнено'; }
-  if (S.live) adminLiveTick();
-  toast(S.live ? 'Автооновлення кожні 30 секунд' : 'Автооновлення вимкнено');
+  if (b) { b.classList.toggle('primary', S.live); b.textContent = S.live ? '🟢 Live: реальний час' : '⚪ Live: вимкнено'; }
+  if (S.live) Live.kick(); else Live.loop();
+  toast(S.live ? 'Live увімкнено: зміни з’являються за 2–3 секунди' : 'Live вимкнено');
 }
 
 function setAdminTab(t, v) {
@@ -2051,7 +2253,7 @@ function setAdminTab(t, v) {
 function renderAdmin(v) {
   const S = State.adm;
   v.innerHTML = pageHead('Адмін-панель', 'Керування акаунтами та повний контроль дій учасників',
-    `<button class="btn ${S.live ? 'primary' : ''}" id="adLive">${S.live ? '🟢 Live: увімкнено' : '⚪ Live: вимкнено'}</button>
+    `<button class="btn ${S.live ? 'primary' : ''}" id="adLive">${S.live ? '🟢 Live: реальний час' : '⚪ Live: вимкнено'}</button>
      <button class="btn" id="adRefresh">${icon('refresh', 16)} Оновити</button>
      <button class="btn primary" data-ucreate>➕ Створити акаунт</button>`) + `
     <div class="tabs" role="tablist">
@@ -2137,17 +2339,19 @@ function liveCard(u) {
 
 function adminOverviewHTML(A) {
   const U = A.users, hunting = U.filter(u => u.activeHunt), blocked = U.filter(u => u.status === 'blocked').length;
-  let salesC = 0, salesN = 0, profitC = 0;
-  U.forEach(u => { salesC += cents(u.salesTotal); salesN += +u.salesCount || 0; });
-  A.hunts.forEach(h => { profitC += cents(h.profit); });
-  const activeH = A.hunts.filter(h => h.status === 'active').length;
+  const T = A.totals || {};
+  const salesC = T.salesTotal != null ? cents(T.salesTotal) : U.reduce((a, u) => a + cents(u.salesTotal), 0);
+  const salesN = T.salesCount != null ? T.salesCount : U.reduce((a, u) => a + (+u.salesCount || 0), 0);
+  const profitC = T.profit != null ? cents(T.profit) : A.hunts.reduce((a, h) => a + cents(h.profit), 0);
+  const activeH = T.activeHunts != null ? T.activeHunts : A.hunts.filter(h => h.status === 'active').length;
+  const huntsAll = T.huntsCount != null ? T.huntsCount : A.hunts.length;
   const top = U.filter(u => num(u.salesTotal) > 0).sort((a, b) => num(b.salesTotal) - num(a.salesTotal)).slice(0, 5);
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
   return `<div class="grid stats">
       ${statCard('Учасників', U.length, 'users', 'blue', `Заблоковано: ${blocked}`)}
       ${statCard('Шукають зараз', hunting.length, 'compass', 'green', `Активних пошуків: ${activeH}`)}
       ${statCard('Сума продажів', fmtMoney(salesC / 100), 'cash', 'gold', `Продажів: ${salesN}`)}
-      ${statCard('Результат пошуків', `<span class="${tone(profitC / 100)}">${signed(profitC / 100)}</span>`, 'dollar', 'gold', `Пошуків усього: ${A.hunts.length}`)}
+      ${statCard('Результат пошуків', `<span class="${tone(profitC / 100)}">${signed(profitC / 100)}</span>`, 'dollar', 'gold', `Пошуків усього: ${huntsAll}`)}
     </div>
     <div class="grid two">
       <section class="card"><div class="card-h"><h2>🟢 Зараз у пошуку</h2></div>${hunting.length ? `<div class="live-grid">${hunting.map(liveCard).join('')}</div>` : emptyState('compass', 'Зараз ніхто не шукає', 'Активні пошуки зʼявляться тут')}</section>
@@ -2223,7 +2427,7 @@ function openUserDetail(id) {
     title: '👁️ Картка учасника', size: 'lg',
     body: `<div class="ud-head">${uAvatar(u)}<div><b style="font-size:18px">${esc(uName(u))}</b>${isMe(u) ? ' <span class="chip gold">Ви</span>' : ''}<div class="muted">${esc(uFull(u) || 'Ім’я не вказано')} · ${esc(u.login)}</div></div>
         <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><span class="chip ${u.role === 'admin' ? 'gold' : ''}">${u.role === 'admin' ? '🛡️ Адмін' : '🧑‍✈️ Користувач'}</span><span class="chip ${u.status === 'blocked' ? 'red' : 'green'}">${u.status === 'blocked' ? '⛔ Заблоковано' : '✅ Активний'}</span></div></div>
-      <div class="ud-kpi"><div><span>Пошуків</span><b>${u.huntsCount}</b></div><div><span>Сума продажів</span><b class="gold">${fmtMoney(u.salesTotal)}</b></div><div><span>Продажів</span><b>${u.salesCount}</b></div><div><span>Подій у журналі</span><b>${acts.length}</b></div></div>
+      <div class="ud-kpi"><div><span>Пошуків</span><b>${u.huntsCount}</b></div><div><span>Сума продажів</span><b class="gold">${fmtMoney(u.salesTotal)}</b></div><div><span>Продажів</span><b>${u.salesCount}</b></div><div><span>Подій у журналі</span><b>${u.activityCount != null ? u.activityCount : acts.length}</b></div></div>
       ${h ? `<div class="live-card"><div class="top"><span class="chip green">Пошук №${h.id} триває</span></div><small>🗺️ карти ${h.mapsUsed}/${h.mapsTotal} · 💸 витрати ${fmtMoney(h.expenses)} · 💰 дохід ${fmtMoney(h.income)}</small></div>` : ''}
       <h4 class="ud-h">🧭 Пошуки</h4>
       ${hunts.length ? `<div class="table-wrap"><table class="table mini"><thead><tr><th>Старт</th><th>Статус</th><th class="r">Карти</th><th class="r">Витрати</th><th class="r">Дохід</th><th class="r">Підсумок</th></tr></thead><tbody>${hunts.slice(0, 8).map(x => `<tr><td>${fmtDate(x.startDate)} ${fmtTime(x.startTime)}</td><td>${huntBadge(x)}</td><td class="r">${x.mapsUsed}/${x.mapsTotal}</td><td class="r">${fmtMoney(x.expenses)}</td><td class="r">${fmtMoney(x.income)}</td><td class="r ${tone(x.profit)}" style="font-weight:800">${signed(x.profit)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Пошуків ще не було.</p>'}
@@ -2331,6 +2535,8 @@ function bindGlobal() {
   $('#burger').onclick = () => { $('#sidebar').classList.add('open'); document.body.classList.add('nav-open'); };
   $('#scrim').onclick = closeSidebar;
   window.addEventListener('hashchange', route);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) Live.kick(); });
+  window.addEventListener('online', () => Live.kick());
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-go]'); if (g) return navigate(g.dataset.go);
     const o = e.target.closest('[data-open]');
@@ -2346,6 +2552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   FX.init();
   resumeSession();
 });
+
 
 </script>
 </body>
