@@ -514,8 +514,18 @@ button.chip{cursor:pointer;font:inherit;font-size:12.5px}
   .sl-name{grid-column:1/-1}
   .sl-sum{text-align:left}
 }
+/* ===== v4: кік ===== */
+.kick-ov{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:20px;background:rgba(3,10,15,.94)}
+.kick-box{max-width:440px;width:100%;text-align:center;background:var(--card);border:1px solid var(--gold);border-radius:18px;padding:32px;box-shadow:var(--glow)}
+.kick-box .big{font-size:56px}
+.kick-box h2{margin:10px 0 8px;font-family:var(--display)}
+.kick-box .actions{justify-content:center}
+.kk-list{max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.kk-u{display:flex;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer}
+.kk-u:first-child{border-top:0}.kk-u:hover{background:var(--card2)}
+.kk-u input{accent-color:var(--gold)}.kk-u b{flex:1}
+.reasons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 </style>
-</head>
 </head>
 <body>
 
@@ -974,11 +984,10 @@ async function resumeSession() {
 }
 
 function enterApp(state) {
-  State.profile = state.profile;
+  State.profile = state.profile; State.kickSeen = null; State.restartSeen = null; State.lastActive = Date.now();
   $('#boot').hidden = true; $('#auth').hidden = true; $('#app').hidden = false;
   buildNav();
   applyState(state, { render: false });
-  ensureCalc();
   if (!location.hash) location.hash = '#/dashboard';
   route();
   Live.start();
@@ -1017,7 +1026,7 @@ const NAV = [
   { group: 'Робота', items: [
     { id: 'dashboard', title: 'Dashboard', icon: 'dashboard' },
     { id: 'hunt', title: 'Пошук скарбів', icon: 'compass' },
-    { id: 'calculator', title: 'Калькулятор', icon: 'calc' },
+    { id: 'inventory', title: 'Інвентар', icon: 'box' },
     { id: 'treasures', title: 'Скарби', icon: 'gem' },
     { id: 'sales', title: 'Продажі', icon: 'cash' },
     { id: 'history', title: 'Історія', icon: 'history' },
@@ -1033,7 +1042,7 @@ const NAV = [
 ];
 const PAGES = {};
 NAV.forEach(g => g.items.forEach(i => PAGES[i.id] = i));
-const NAV_EMOJI = { dashboard: '🏠', hunt: '🧭', calculator: '🧮', treasures: '💎', sales: '💰', history: '📜', statistics: '📊', leaderboard: '🏆', lists: '📚', profile: '🧑‍✈️', settings: '⚙️', admin: '🛡️' };
+const NAV_EMOJI = { dashboard: '🏠', hunt: '🧭', inventory: '🎒', treasures: '💎', sales: '💰', history: '📜', statistics: '📊', leaderboard: '🏆', lists: '📚', profile: '🧑‍✈️', settings: '⚙️', admin: '🛡️' };
 
 function buildShell() {
   $('#burger').innerHTML = icon('menu', 22);
@@ -1059,7 +1068,7 @@ function route() {
 }
 
 const RENDERERS = () => ({
-  dashboard: renderDashboard, hunt: renderHunt, calculator: renderCalculator, treasures: renderTreasures, sales: renderSales,
+  dashboard: renderDashboard, hunt: renderHunt, inventory: renderInventory, treasures: renderTreasures, sales: renderSales,
   history: renderHistory, statistics: renderStatistics, leaderboard: renderLeaderboard, lists: renderLists,
   profile: renderProfile, settings: renderSettings, admin: renderAdmin
 });
@@ -1145,7 +1154,6 @@ function renderDashboard(v) {
       ${statCard('Загальний дохід', fmtMoney(d.income), 'trend', 'green', `Продажі ${fmtMoney(d.salesIncome)} + гроші зі скарбів ${fmtMoney(d.treasureMoney)}`)}
       ${statCard('Загальні витрати', fmtMoney(d.expenses), 'wallet', 'red', `Пошуків: ${d.huntsCount}`)}
       ${statCard('Непродане в рюкзаку', fmtMoney(d.stockValue), 'box', 'blue', h ? `${d.stockCount} шт. не оброблено` : 'Немає активного пошуку')}
-      ${statCard('Інвентар', fmtMoney(d.inventoryValue || 0), 'box', 'green', `${d.inventoryCount || 0} шт. залишено собі`)}
       ${statCard('Продажі', d.salesCount, 'cash', 'blue', `Продано предметів: ${d.itemsSold}`)}
       ${statCard('Скарби', d.treasuresCount, 'map', '', `Карт не спрацювало: ${d.failedCount}`)}
       ${statCard('Коштовності', d.jewelsCount, 'gem', 'gold', 'Знайдено предметів')}
@@ -1156,7 +1164,6 @@ function renderDashboard(v) {
         ${B.sales.length ? `<div class="table-wrap"><table class="table mini"><tbody>${B.sales.slice(0, 6).map(s => `<tr><td><div class="cell-main">${esc(s.itemName)}</div><div class="cell-sub">${fmtDate(s.date)} ${fmtTime(s.time)}, x${s.quantity}</div></td><td class="r gold" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('cash', 'Продажів ще немає', 'Вони зʼявляться після першого продажу з рюкзака')}
       </section>
     </div>
-    <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Мій інвентар</h2></div>${B.inventory && B.inventory.length ? `<div class="table-wrap"><table class="table mini"><tbody>${B.inventory.slice(0, 8).map(i => `<tr><td><div class="cell-main">${esc(i.name)}</div><div class="cell-sub">x${i.qty}</div></td><td class="r gold" style="font-weight:800">${fmtMoney(i.value)}</td></tr>`).join('')}</tbody></table></div>` : emptyState('box', 'Інвентар порожній', 'Залишені предмети зʼявляться тут')} </section>
     <section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Мої пошуки</h2><a class="chip" href="#/hunt">Усі пошуки</a></div>${huntsTable(B.hunts.slice(0, 5))}</section>`;
   bindChart($('#dbChart'), B.statistics.days);
 }
@@ -1692,7 +1699,7 @@ const Live = {
   interval() {
     const c = (State.boot && State.boot.config) || {};
     const fast = isAdmin() && State.page === 'admin' && State.adm.live;
-    return Math.max(1500, fast ? (c.pollAdminMs || 3000) : (c.pollUserMs || 10000));
+    return fast ? 2000 : 3500;
   },
   start() { this.stop(); this.off = false; if (State.token) this.loop(); },
   stop() { clearTimeout(this.t); this.t = null; },
@@ -1712,6 +1719,13 @@ const Live = {
     this.busy = true;
     try {
       const r = await api('getRev', { uid: State.profile.id }, { silent: true, retry: false });
+      if (r.restart) {
+        if (State.restartSeen == null) State.restartSeen = r.restart.id;
+        else if (r.restart.id && r.restart.id !== State.restartSeen) { State.restartSeen = r.restart.id; KickUI.show({ type: 'restart', mode: 'reconnect', message: r.restart.msg }); return; }
+      }
+      if (State.kickSeen == null) { State.kickSeen = r.kick ? r.kick.id : 0; if (r.kick) api('ackKick', {}, { silent: true, retry: false }).catch(() => {}); }
+      else if (r.kick && r.kick.id !== State.kickSeen) { State.kickSeen = r.kick.id; KickUI.show({ type: 'kick', mode: r.kick.mode, message: r.kick.message }); return; }
+      if (r.idle && r.idle.on && !isAdmin() && Date.now() - State.lastActive > r.idle.minutes * 60000) { KickUI.show({ type: 'idle', mode: 'reconnect' }); return; }
       if (State.rev.g == null) State.rev = { g: r.g, u: r.u };
       const adminView = isAdmin() && State.page === 'admin';
       if (adminView && State.adm.rev == null) State.adm.rev = r.g;
@@ -1749,7 +1763,6 @@ async function finishFlow() {
 
 const OPEN = {
   startHunt: () => openStartHunt(),
-  startFromCalc: () => openStartHunt(State.calc.exp),
   report: openReportModal,
   expense: openExpenseModal,
   sale: el => openSaleModal(el && el.dataset ? el.dataset.item : ''),
@@ -1829,67 +1842,59 @@ function reportCard(t) {
 }
 
 /* ==========================================================
-   КАЛЬКУЛЯТОР (рахує автоматично)
+   СКАРБИ (адмін бачить усіх, користувач лише себе) та ІНВЕНТАР
    ========================================================== */
-const defaultCalc = () => ({ exp: newExpenseModel(), inc: { money: '', items: [{ name: '', qty: 1 }] } });
-const calcKey = () => LS.calc + '_' + (State.profile ? State.profile.id : 'x');
-function ensureCalc() {
-  try {
-    const c = JSON.parse(localStorage.getItem(calcKey()));
-    if (c && c.exp && Array.isArray(c.exp.lines) && c.inc && Array.isArray(c.inc.items)) { State.calc = c; return; }
-  } catch (_) {}
-  State.calc = defaultCalc();
+const TQ = { uid: 'me', hunt: 'all', data: null };
+async function tqLoad(uid) {
+  TQ.hunt = 'all';
+  if (uid === 'me') { TQ.uid = 'me'; TQ.data = null; return renderPage(); }
+  await guard(null, async () => { TQ.data = await api('getUserTreasures', { userId: uid }); TQ.uid = uid; });
+  renderPage();
 }
-function saveCalc() { try { localStorage.setItem(calcKey(), JSON.stringify(State.calc)); } catch (_) {} }
-function calcTotals() {
-  const exp = expenseTotal(State.calc.exp), inc = draftTotals(State.calc.inc).total;
-  return { exp, inc, profit: round2(inc - exp), need: Math.max(0, round2(exp - inc)) };
+function treasureCard(t) {
+  return `<article class="card tr-card ${t.result === 'failed' ? 'failed' : ''}">
+    <div class="tr-head"><div class="tr-title"><span class="ti">${icon(t.result === 'failed' ? 'xcircle' : 'gem', 17)}</span>Карта №${t.number}${t.huntId ? ` <span class="chip">Пошук №${t.huntId}</span>` : ''}</div><span class="tr-when">${fmtDate(t.date)}, ${fmtTime(t.time)}</span>${t.result === 'failed' ? '' : `<span class="tr-total gold">${fmtMoney(t.totalValue)}</span>`}</div>
+    <p class="tr-log">${treasureLog(t)}</p>
+    ${(t.items || []).length ? `<div class="table-wrap"><table class="table mini"><thead><tr><th>Предмет</th><th class="r">К-сть</th><th class="r">Ціна</th><th class="r">Вартість</th></tr></thead><tbody>${t.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">x${i.qty}</td><td class="r">${fmtMoney(i.price)}</td><td class="r">${fmtMoney(i.total)}</td></tr>`).join('')}${t.money > 0 ? `<tr><td colspan="3" class="muted">Отримані гроші</td><td class="r">${fmtMoney(t.money)}</td></tr>` : ''}</tbody></table></div>` : ''}
+  </article>`;
 }
-function updateCalcSummary() {
-  const t = calcTotals();
-  $$('[data-sum]').forEach(el => {
-    const k = el.dataset.sum;
-    el.textContent = k === 'profit' ? signed(t.profit) : fmtMoney(t[k]);
-    if (k === 'profit') el.className = tone(t.profit);
-  });
-  const lb = $('[data-sumlabel]'); if (lb) lb.textContent = t.profit < 0 ? 'Збиток' : 'Прибуток';
-}
-
-function renderCalculator(v) {
-  if (!State.calc) ensureCalc();
-  v.innerHTML = pageHead('Калькулятор', 'Плануйте пошук: введіть витрати й очікувані знахідки, підсумок рахується сам',
-    State.boot.activeHunt ? '' : `<button class="btn primary" data-open="startFromCalc">${icon('play', 16)} Почати пошук із цими витратами</button>`) + `
-    <div class="calc-summary">
-      <div class="sum-card"><span>Витрати</span><b data-sum="exp"></b></div>
-      <div class="sum-card"><span>Очікуваний дохід</span><b data-sum="inc"></b></div>
-      <div class="sum-card profit"><span data-sumlabel>Прибуток</span><b data-sum="profit"></b></div>
-      <div class="sum-card"><span>До беззбитковості</span><b data-sum="need" class="gold"></b></div>
-    </div>
-    <div class="grid cols2 top">
-      <section class="card"><div class="card-h"><h2>${icon('wallet', 17)} Витрати</h2></div><div id="cxExp"></div></section>
-      <section class="card"><div class="card-h"><h2>${icon('gem', 17)} Очікувані знахідки</h2></div><div id="cxInc"></div></section>
-    </div>
-    <div class="actions between"><p class="hint" style="margin:0">Калькулятор нічого не записує в базу, це лише розрахунок. Ціни предметів беруться зі спільної бази.</p><button class="btn ghost" id="cxClear">Очистити</button></div>`;
-  const opts = { onChange: () => { updateCalcSummary(); saveCalc(); }, onStructure: saveCalc };
-  bindExpense($('#cxExp'), State.calc.exp, opts); renderExpense($('#cxExp'), State.calc.exp, opts);
-  const io = { ...opts, calc: true };
-  bindDraft($('#cxInc'), State.calc.inc, io); renderDraft($('#cxInc'), State.calc.inc, io);
-  $('#cxClear').onclick = () => { State.calc = defaultCalc(); saveCalc(); renderCalculator(v); };
-}
-
-/* ==========================================================
-   СКАРБИ (журнал усіх звітів)
-   ========================================================== */
 function renderTreasures(v) {
-  const list = State.boot.treasures, h = State.boot.activeHunt;
-  v.innerHTML = pageHead('Скарби', 'Журнал звітів по всіх картах',
-    h ? `<button class="btn primary" data-open="report" ${h.mapsUsed >= h.mapsTotal ? 'disabled' : ''}>${icon('map', 16)} Звітувати про карту</button>`
-      : `<button class="btn primary" data-open="startHunt">${icon('play', 16)} Почати пошук скарбів</button>`) +
-    (list.length ? list.map(t => `<article class="card tr-card ${t.result === 'failed' ? 'failed' : ''}">
-      <div class="tr-head"><div class="tr-title"><span class="ti">${icon(t.result === 'failed' ? 'xcircle' : 'gem', 17)}</span>Карта №${t.number}${t.huntId ? ` <span class="chip">Пошук №${t.huntId}</span>` : ''}</div><span class="tr-when">${fmtDate(t.date)}, ${fmtTime(t.time)}</span>${t.result === 'failed' ? '' : `<span class="tr-total gold">${fmtMoney(t.totalValue)}</span>`}</div>
-      <p class="tr-log">${treasureLog(t)}</p>
-      ${t.items.length ? `<div class="table-wrap"><table class="table mini"><thead><tr><th>Предмет</th><th class="r">К-сть</th><th class="r">Ціна</th><th class="r">Вартість</th></tr></thead><tbody>${t.items.map(i => `<tr><td>${esc(i.name)}</td><td class="r">x${i.qty}</td><td class="r">${fmtMoney(i.price)}</td><td class="r">${fmtMoney(i.total)}</td></tr>`).join('')}${t.money > 0 ? `<tr><td colspan="3" class="muted">Отримані гроші</td><td class="r">${fmtMoney(t.money)}</td></tr>` : ''}</tbody></table></div>` : ''}
-    </article>`).join('') : `<div class="card">${emptyState('gem', 'Звітів ще немає', 'Розпочніть пошук і звітуйте про кожну відкриту карту')}</div>`);
+  const B = State.boot, h = B.activeHunt, admin = isAdmin();
+  if (!admin) { TQ.uid = 'me'; TQ.data = null; }
+  if (admin && !State.admin) loadAdmin(false, true).then(() => State.page === 'treasures' && renderPage()).catch(() => {});
+  const other = TQ.uid !== 'me' && TQ.data, src = other ? TQ.data : { treasures: B.treasures, hunts: B.hunts };
+  const hunts = src.hunts || [], all = src.treasures || [];
+  const list = all.filter(t => TQ.hunt === 'all' || String(t.huntId) === TQ.hunt);
+  const ok = list.filter(t => t.result !== 'failed'), total = ok.reduce((a, t) => a + cents(t.totalValue), 0) / 100;
+  const users = admin && State.admin ? State.admin.users.filter(u => !isMe(u)) : [];
+  v.innerHTML = pageHead('Скарби', other ? 'Перегляд скарбів обраного учасника' : 'Журнал звітів по ваших картах',
+    !other && (h ? `<button class="btn primary" data-open="report" ${h.mapsUsed >= h.mapsTotal ? 'disabled' : ''}>${icon('map', 16)} Звітувати про карту</button>` : `<button class="btn primary" data-open="startHunt">${icon('play', 16)} Почати пошук скарбів</button>`)) +
+    `<section class="card filters">
+      ${admin ? `<div class="field"><span>Учасник</span><select class="input" id="tqUser"><option value="me">Я (${esc(State.profile.nickname)})</option>${users.map(u => `<option value="${u.id}" ${TQ.uid === String(u.id) ? 'selected' : ''}>${esc(uName(u))}</option>`).join('')}</select></div>` : ''}
+      <div class="field"><span>Номер пошуку</span><select class="input" id="tqHunt"><option value="all">Усі пошуки</option>${hunts.map(x => `<option value="${x.id}" ${TQ.hunt === String(x.id) ? 'selected' : ''}>№${x.id} · ${fmtDate(x.startDate)}${x.status === 'active' ? ' · активний' : ''}</option>`).join('')}</select></div>
+      <div class="field"><span>Підсумок</span><div class="static">${ok.length} знахідок · невдалих ${list.length - ok.length} · <b class="gold">${fmtMoney(total)}</b></div></div>
+    </section>` +
+    (list.length ? list.map(treasureCard).join('') : `<div class="card">${emptyState('gem', 'Звітів немає', 'Змініть учасника чи номер пошуку')}</div>`);
+  v.onchange = e => {
+    if (e.target.id === 'tqUser') tqLoad(e.target.value);
+    else if (e.target.id === 'tqHunt') { TQ.hunt = e.target.value; renderPage(); }
+  };
+}
+
+const INV = { q: '' };
+function renderInventory(v) {
+  const B = State.boot, inv = (B.inventory || []).filter(i => i.status !== 'sold' && i.qty > 0), h = B.activeHunt;
+  const val = inv.reduce((a, i) => a + cents(i.value), 0) / 100, cnt = inv.reduce((a, i) => a + i.qty, 0);
+  v.innerHTML = pageHead('Інвентар', 'Предмети, які ви залишили собі після пошуків') + `
+    <div class="grid stats">${statCard('Вартість інвентарю', fmtMoney(val), 'box', 'green', 'За цінами зі спільної бази')}${statCard('Предметів', cnt, 'gem', 'gold', `Позицій: ${inv.length}`)}${statCard('Ще в рюкзаку', h ? fmtMoney(h.stockValue) : '—', 'wallet', 'blue', h ? `${h.stockCount} шт. не оброблено` : 'Немає активного пошуку')}</div>
+    <section class="card filters"><div class="field grow"><span>Пошук</span><div class="input-affix search"><i>${icon('search', 16)}</i><input class="input" id="ivQ" placeholder="Назва предмета" value="${esc(INV.q)}"></div></div></section>
+    <section class="card p0" id="ivBody"></section>`;
+  const draw = () => {
+    const q = norm(INV.q), l = inv.filter(i => !q || norm(i.name).includes(q)).sort((a, b) => b.value - a.value);
+    $('#ivBody').innerHTML = l.length ? `<div class="table-wrap"><table class="table stack"><thead><tr><th>Предмет</th><th>Пошук</th><th class="r">К-сть</th><th class="r">Ціна</th><th class="r">Вартість</th></tr></thead><tbody>${l.map(i => `<tr><td data-label="Предмет" class="cell-main">${esc(i.name)}</td><td data-label="Пошук">${i.huntId ? '№' + i.huntId : '—'}</td><td class="r" data-label="К-сть">x${i.qty}</td><td class="r" data-label="Ціна">${fmtMoney(i.price)}</td><td class="r gold" data-label="Вартість" style="font-weight:800">${fmtMoney(i.value)}</td></tr>`).join('')}</tbody></table></div><div class="table-foot"><span>Позицій: ${l.length}</span><span>Разом <b>${fmtMoney(l.reduce((a, i) => a + cents(i.value), 0) / 100)}</b></span></div>` : emptyState('box', 'Інвентар порожній', 'Залишені під час продажу предмети зʼявляться тут');
+  };
+  $('#ivQ').oninput = debounce(e => { INV.q = e.target.value; draw(); }, 120);
+  draw();
 }
 
 /* ==========================================================
@@ -1897,8 +1902,8 @@ function renderTreasures(v) {
    ========================================================== */
 function salesTable(list) {
   if (!list.length) return emptyState('cash', 'Нічого не знайдено', 'Змініть фільтри або зробіть новий продаж');
-  return `<div class="table-wrap"><table class="table stack"><thead><tr><th>Дата</th><th>Час</th><th>Коштовність</th><th class="r">К-сть</th><th class="r">Ціна за од.</th><th class="r">Сума</th></tr></thead><tbody>
-    ${list.map(s => `<tr><td data-label="Дата">${fmtDate(s.date)}</td><td data-label="Час">${fmtTime(s.time)}</td><td data-label="Коштовність" class="cell-main">${esc(s.itemName)}</td><td class="r" data-label="Кількість">x${s.quantity}</td><td class="r" data-label="Ціна за од.">${fmtMoney(s.price)}</td><td class="r gold" data-label="Сума" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}
+  return `<div class="table-wrap"><table class="table stack"><thead><tr><th>Дата</th><th>Час</th><th>Пошук</th><th>Коштовність</th><th class="r">К-сть</th><th class="r">Ціна за од.</th><th class="r">Сума</th></tr></thead><tbody>
+    ${list.map(s => `<tr><td data-label="Дата">${fmtDate(s.date)}</td><td data-label="Час">${fmtTime(s.time)}</td><td data-label="Пошук">${s.huntId ? '№' + s.huntId : '—'}</td><td data-label="Коштовність" class="cell-main">${esc(s.itemName)}</td><td class="r" data-label="Кількість">x${s.quantity}</td><td class="r" data-label="Ціна за од.">${fmtMoney(s.price)}</td><td class="r gold" data-label="Сума" style="font-weight:800">${fmtMoney(s.total)}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
 
@@ -1908,6 +1913,13 @@ function salesKpis(list) {
   return `<div class="grid stats">${statCard('Сьогодні', fmtMoney(day / 100), 'cash', 'gold', '💰 продажі за день')}${statCard('Останні 7 днів', fmtMoney(week / 100), 'trend', 'green', '📈 тижневий оборот')}${statCard('Усього', fmtMoney(all / 100), 'dollar', 'blue', `Продажів: ${list.length}`)}${statCard('Найбільший продаж', fmtMoney(best / 100), 'trophy', 'gold', '🏅 рекорд')}</div>`;
 }
 
+function topItemsHTML(sales) {
+  const m = new Map();
+  sales.forEach(s => { const o = m.get(s.itemName) || { n: s.itemName, q: 0, c: 0 }; o.q += s.quantity; o.c += cents(s.total); m.set(s.itemName, o); });
+  const top = [...m.values()].sort((a, b) => b.c - a.c).slice(0, 5);
+  if (!top.length) return '';
+  return `<section class="card p0 mb"><div class="card-h" style="padding:20px 20px 0"><h2>🏅 Топ предметів за виручкою</h2></div><div class="table-wrap"><table class="table mini"><tbody>${top.map(o => `<tr><td class="cell-main">${esc(o.n)}</td><td class="r muted">×${o.q}</td><td class="r gold" style="font-weight:800">${fmtMoney(o.c / 100)}</td></tr>`).join('')}</tbody></table></div></section>`;
+}
 function renderSales(v) {
   const B = State.boot, h = B.activeHunt;
   v.innerHTML = pageHead('Продажі', 'Продавайте те, що знайдено в поточному пошуку',
@@ -1915,7 +1927,7 @@ function renderSales(v) {
     salesKpis(B.sales) +
     (h ? `<section class="card p0 mb"><div class="card-h" style="padding:20px 20px 0"><h2>Рюкзак</h2><span class="chip">Пошук №${h.id}</span></div>${inventoryTable(h)}</section>`
       : `<section class="card mb">${emptyState('compass', 'Немає активного пошуку', 'Продавати можна лише предмети, знайдені під час пошуку. Розпочніть пошук у розділі «Пошук скарбів».')}</section>`) +
-    `<section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Останні продажі</h2><a class="chip" href="#/history">Уся історія</a></div>${B.sales.length ? salesTable(B.sales.slice(0, 8)) : emptyState('cash', 'Продажів ще немає')}</section>
+    topItemsHTML(B.sales) + `<section class="card p0"><div class="card-h" style="padding:20px 20px 0"><h2>Останні продажі</h2><a class="chip" href="#/history">Уся історія</a></div>${B.sales.length ? salesTable(B.sales.slice(0, 8)) : emptyState('cash', 'Продажів ще немає')}</section>
     <div class="tg-note mt ${''}">${icon('send', 18)}<span>Продажі від <b>${fmtMoney(threshold())}</b> автоматично потрапляють у Telegram-лог.</span></div>`;
 }
 
@@ -2202,21 +2214,20 @@ function renderSettings(v) {
       <div class="kv" style="border-top:0"><span>Telegram-лог</span><b>продажі від ${fmtMoney(threshold())}</b></div>
       <div class="kv"><span>Збереження</span><b>Google Sheets</b></div>
       <div class="actions between" style="margin-top:18px"><button class="btn" id="sRefresh">${icon('refresh', 16)} Оновити дані</button><button class="btn danger" id="sLogout">${icon('logout', 16)} Вийти</button></div>
-      <div class="actions" style="margin-top:10px"><button class="btn ghost sm" id="sClearCalc">Очистити чернетку калькулятора</button></div>
+      
     </section>
   </div>`;
   $('#sCompact').onchange = e => { State.prefs.compact = e.target.checked; savePrefs(); };
   $('#sAnim').onchange = e => { State.prefs.noAnim = e.target.checked; savePrefs(); };
   $('#sRefresh').onclick = e => guard(e.currentTarget, async () => { applyState(await api('getBootstrap')); toast('Дані оновлено'); });
   $('#sLogout').onclick = logout;
-  $('#sClearCalc').onclick = () => { State.calc = defaultCalc(); saveCalc(); toast('Чернетку очищено'); };
 }
 
 /* ==========================================================
    АДМІН-ПАНЕЛЬ (керування акаунтами + повний облік дій)
    ========================================================== */
 const ACT_EMOJI = { login: '🔑', hunt_start: '🧭', hunt_finish: '🏁', hunt_force: '⛔', hunt_restore: '↩️', expense: '💸', treasure: '💎', map_failed: '🗺️', sale: '💰', item: '📦', admin: '🛡️' };
-const ADMIN_TABS = [['overview', '📈', 'Огляд'], ['users', '👥', 'Учасники'], ['hunts', '🧭', 'Пошуки'], ['activity', '🕵️', 'Активність']];
+const ADMIN_TABS = [['overview', '📈', 'Огляд'], ['users', '👥', 'Учасники'], ['hunts', '🧭', 'Пошуки'], ['activity', '🕵️', 'Активність'], ['control', '🎛️', 'Керування']];
 
 const uName = u => u.nickname || u.login || '—';
 const uFull = u => ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
@@ -2294,6 +2305,12 @@ function renderAdmin(v) {
     if ((b = t.closest('[data-fin]'))) return adminFinish(+b.dataset.fin);
     if ((b = t.closest('[data-restore]'))) return adminRestore(+b.dataset.restore);
     if (t.closest('#adExport')) return exportActivity();
+    if (t.closest('[data-kickopen]')) return openKickModal([]);
+    if (t.closest('[data-kickall]')) return openKickModal(State.admin.users.filter(u => u.online && !isMe(u)).map(u => u.id));
+    if ((b = t.closest('[data-kickone]'))) return openKickModal([b.dataset.kickone]);
+    if (t.closest('#rsNow')) return adminRestartNow();
+    if (t.closest('#rsSave') || t.closest('#idSave')) return adminSaveRt(t.closest('button'));
+    if (t.closest('#idToggle')) return adminIdleToggle(t.closest('button'));
     if ((b = t.closest('[data-more]'))) {
       if (b.dataset.more === 'act') State.adm.alim += PAGE_SIZE; else if (b.dataset.more === 'hunts') State.adm.hlim += PAGE_SIZE;
       return drawAdmin(false);
@@ -2318,7 +2335,7 @@ function renderAdmin(v) {
 function drawAdmin(full = true) {
   const A = State.admin, body = $('#adBody'); if (!A || !body) return;
   const t = State.adminTab;
-  if (full || t === 'overview' || !$('#adList')) body.innerHTML = adminShell(A, t);
+  if (full || t === 'overview' || (t !== 'control' && !$('#adList'))) body.innerHTML = adminShell(A, t);
   const list = $('#adList');
   if (list) list.innerHTML = adminList(A, t);
 }
@@ -2331,6 +2348,7 @@ const searchField = (key, val, ph) => `<div class="field grow"><span>Пошук<
 function adminShell(A, t) {
   const S = State.adm;
   if (t === 'overview') return adminOverviewHTML(A);
+  if (t === 'control') return adminControlHTML(A);
   if (t === 'users') return `<section class="card filters">${searchField('uq', S.uq, 'Нікнейм, логін, ім’я')}
       <div class="field"><span>Показати</span><select class="input" data-af="ust">${[['all', 'Усіх'], ['active', 'Активних'], ['blocked', 'Заблокованих'], ['hunting', 'Хто шукає зараз']].map(([k, l]) => `<option value="${k}" ${S.ust === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="toolbar-actions"><button class="btn primary" data-ucreate>➕ Створити акаунт</button></div></section>
@@ -2353,10 +2371,12 @@ function adminList(A, t) {
 }
 
 function liveCard(u) {
-  const h = u.activeHunt, pct = h.expenses > 0 ? Math.min(100, Math.round(h.income / h.expenses * 100)) : 0;
-  return `<div class="live-card"><div class="top">${uAvatar(u)}<div><b>${esc(uName(u))}</b><br><small>Пошук №${h.id}</small></div><button class="icon-btn" style="margin-left:auto" data-uview="${u.id}" title="Деталі">👁️</button></div>
+  const h = u.activeHunt, pct = h.expenses > 0 ? Math.min(100, Math.round(h.income / h.expenses * 100)) : 0, pr = h.profit != null ? h.profit : round2(h.income - h.expenses);
+  return `<div class="live-card"><div class="top">${uAvatar(u)}<div><b>${esc(uName(u))}</b>${u.online ? ' 🟢' : ''}<br><small>Пошук №${h.id} · з ${fmtDate(h.startDate)} ${fmtTime(h.startTime)}</small></div><button class="icon-btn" style="margin-left:auto" data-uview="${u.id}" title="Деталі">👁️</button></div>
     <div class="progress ${h.income >= h.expenses && h.expenses > 0 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>
-    <small>🗺️ карти ${h.mapsUsed}/${h.mapsTotal} · 💸 ${fmtMoney(h.expenses)} · 💰 ${fmtMoney(h.income)}</small></div>`;
+    <small>🗺️ карти ${h.mapsUsed}/${h.mapsTotal}${h.mapsFailed ? ` (невдало ${h.mapsFailed})` : ''} · 💸 ${fmtMoney(h.expenses)} · 💰 ${fmtMoney(h.income)}</small>
+    <small>📊 результат <b class="${tone(pr)}">${signed(pr)}</b> · 🎒 рюкзак ${h.stockCount || 0} шт. (${fmtMoney(h.stockValue || 0)}) · 🧳 інвентар ${h.inventoryCount || 0}</small>
+    <div style="display:flex;gap:6px"><button class="btn sm" data-fin="${h.id}">${icon('flag', 14)} Завершити</button><button class="btn sm danger" data-kickone="${u.id}">🚪 Кік</button></div></div>`;
 }
 
 function adminOverviewHTML(A) {
@@ -2406,8 +2426,8 @@ function adminHuntsList(A) {
   const list = A.hunts.filter(h => (S.hst === 'all' || (S.hst === 'active' ? h.status === 'active' : h.status !== 'active')) && (!uu || huntOf(h, uu)) && (!q || norm(h.nickname).includes(q)));
   if (!list.length) return emptyState('compass', 'Пошуків не знайдено', 'Змініть фільтри');
   const n = Math.min(list.length, S.hlim);
-  return `<div class="table-wrap"><table class="table stack"><thead><tr><th>Учасник</th><th>Старт</th><th>Статус</th><th class="r">Карти</th><th class="r">Витрати</th><th class="r">Дохід</th><th class="r">Результат</th><th class="r">Непродано</th><th></th></tr></thead><tbody>
-    ${list.slice(0, n).map(h => `<tr><td class="cell-main" data-label="Учасник">${esc(h.nickname)}<div class="cell-sub">пошук №${h.id}</div></td><td data-label="Старт">${fmtDate(h.startDate)}<div class="cell-sub">${fmtTime(h.startTime)}</div></td><td data-label="Статус">${huntBadge(h)}${h.endDate ? `<div class="cell-sub">${fmtDate(h.endDate)} ${fmtTime(h.endTime)}</div>` : ''}</td>
+  return `<div class="table-wrap"><table class="table stack"><thead><tr><th>№</th><th>Учасник</th><th>Старт</th><th>Статус</th><th class="r">Карти</th><th class="r">Витрати</th><th class="r">Дохід</th><th class="r">Результат</th><th class="r">Непродано</th><th></th></tr></thead><tbody>
+    ${list.slice(0, n).map(h => `<tr><td data-label="№"><b>#${h.id}</b></td><td class="cell-main" data-label="Учасник">${esc(h.nickname)}<div class="cell-sub">пошук №${h.id}</div></td><td data-label="Старт">${fmtDate(h.startDate)}<div class="cell-sub">${fmtTime(h.startTime)}</div></td><td data-label="Статус">${huntBadge(h)}${h.endDate ? `<div class="cell-sub">${fmtDate(h.endDate)} ${fmtTime(h.endTime)}</div>` : ''}</td>
       <td class="r" data-label="Карти">${h.mapsUsed}/${h.mapsTotal}<div class="cell-sub">не спрацювало: ${h.mapsFailed}</div></td><td class="r" data-label="Витрати">${fmtMoney(h.expenses)}</td><td class="r" data-label="Дохід">${fmtMoney(h.income)}</td><td class="r ${tone(h.profit)}" data-label="Результат" style="font-weight:800">${signed(h.profit)}</td>
       <td class="r" data-label="Непродано">${h.stockCount ? `${h.stockCount} шт.<div class="cell-sub">${fmtMoney(h.stockValue)}</div>` : '—'}</td>
       <td class="r nolabel">${h.status === 'active' ? `<button class="btn sm ${h.finish.canFinish ? '' : 'danger'}" data-fin="${h.id}">${icon('flag', 14)} Завершити</button>` : `<button class="btn sm" data-restore="${h.id}">↩️ Відновити</button>`}</td></tr>`).join('')}
@@ -2560,6 +2580,93 @@ async function adminRestore(id) {
 }
 
 /* ==========================================================
+   КІК / РЕСТАРТ / ТАЙМЕР НЕАКТИВНОСТІ (пошуки й дані НЕ чіпаються)
+   ========================================================== */
+const KickUI = {
+  el: null,
+  show(k) {
+    if (this.el) return;
+    Live.off = true;
+    const M = { restart: ['♻️', 'Сайт перезавантажується', 'Адміністратор перезапустив сайт. Перепідключіться, щоб продовжити.'], idle: ['💤', 'Вас відключено за неактивність', 'Ви довго не користувалися сайтом.'], kick: ['🚪', 'Вас кікнув адміністратор', 'Адміністратор відключив вас від сайту.'] }[k.type] || ['🚪', 'Вас відключено', ''];
+    const el = this.el = document.createElement('div'); el.className = 'kick-ov';
+    el.innerHTML = `<div class="kick-box"><div class="big">${M[0]}</div><h2>${M[1]}</h2><p class="muted">${M[2]}</p>${k.message ? `<p class="mt"><b>Повідомлення:</b> ${esc(k.message)}</p>` : ''}<p class="hint">✅ Ваші пошуки та дані збережено, нічого не втрачено.</p><div class="actions">${k.mode === 'logout' ? '' : '<button class="btn primary" data-k="re">🔄 Перепідключитися</button>'}<button class="btn" data-k="out">🚪 Вийти</button></div></div>`;
+    document.body.appendChild(el);
+    el.onclick = async e => {
+      const b = e.target.closest('[data-k]'); if (!b) return;
+      b.disabled = true;
+      try { await api('ackKick', {}, { silent: true, retry: false }); } catch (_) {}
+      if (b.dataset.k === 'out') { this.hide(); return logout(); }
+      if (k.type === 'restart') return location.reload();
+      try { const st = await api('getBootstrap'); this.hide(); State.lastActive = Date.now(); applyState(st); Live.start(); }
+      catch (err) { b.disabled = false; toast(err.message || 'Не вдалося підключитися', 'warn'); }
+    };
+  },
+  hide() { if (this.el) this.el.remove(); this.el = null; Live.off = false; }
+};
+
+function openKickModal(pre) {
+  const A = State.admin; if (!A) return;
+  const sel = new Set(pre.map(String)); let mode = 'reconnect';
+  const U = A.users.filter(u => !isMe(u) && u.status !== 'blocked').sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+  const R = ['Порушення правил', 'Технічні роботи', 'Перевірка акаунта', 'Неактивність'];
+  openModal({
+    title: '🚪 Кік з сайту', size: 'lg',
+    body: `<p class="muted mb">Учасника буде миттєво відключено. <b>Активні пошуки та дії не завершуються</b>, після перепідключення все на місці.</p>
+      <div class="kk-list">${U.map(u => `<label class="kk-u"><input type="checkbox" data-u="${u.id}" ${sel.has(String(u.id)) ? 'checked' : ''}>${uAvatar(u)}<b>${esc(uName(u))}</b>${u.activeHunt ? `<span class="chip gold">🧭 №${u.activeHunt.id}</span>` : ''}<span class="chip ${u.online ? 'green' : ''}">${u.online ? '🟢 онлайн' : 'офлайн'}</span></label>`).join('') || '<p class="muted" style="padding:14px">Немає учасників</p>'}</div>
+      <div class="field"><span>Що побачить учасник</span></div>
+      <div class="seg mb" id="kkMode"><button data-md="reconnect" class="on">🔄 Можна перепідключитися</button><button data-md="logout">🚪 Лише вийти</button></div>
+      <div class="reasons">${R.map(r => `<button type="button" class="chip" data-r="${r}">${r}</button>`).join('')}</div>
+      <label class="field"><span>Повідомлення</span><input class="input" id="kkMsg" maxlength="160" placeholder="Причина (необов’язково)"></label>`,
+    actions: [
+      { label: 'Скасувати', kind: 'ghost', onClick: m => m.close() },
+      { label: 'Кікнути', kind: 'danger', onClick: (m, btn) => guard(btn, async () => {
+          if (!sel.size) { toast('Оберіть хоча б одного учасника', 'warn'); return; }
+          await adminApi('adminKick', { ids: [...sel], mode, message: $('#kkMsg', m.el).value.trim() });
+          m.close(); toast(`Кікнуто: ${sel.size}`);
+        }) }
+    ],
+    onMount: m => {
+      const btn = $('.modal-f .danger', m.el), upd = () => { btn.textContent = `🚪 Кікнути (${sel.size})`; btn.disabled = !sel.size; };
+      m.el.addEventListener('change', e => { const id = e.target.dataset.u; if (id) { e.target.checked ? sel.add(id) : sel.delete(id); upd(); } });
+      m.el.addEventListener('click', e => {
+        const md = e.target.closest('[data-md]'), r = e.target.closest('[data-r]');
+        if (md) { mode = md.dataset.md; $$('#kkMode button', m.el).forEach(x => x.classList.toggle('on', x === md)); }
+        if (r) $('#kkMsg', m.el).value = r.dataset.r;
+      });
+      upd();
+    }
+  });
+}
+
+function adminControlHTML(A) {
+  const s = A.settings || {}, idle = s.idle || {};
+  return `<div class="grid two top">
+    <section class="card"><div class="card-h"><h2>🚪 Кік з сайту</h2></div><p class="muted mb">Відключає учасників за 2–4 секунди. Пошуки, продажі та дані не змінюються.</p>
+      <div class="actions"><button class="btn primary" data-kickopen>Обрати й кікнути…</button><button class="btn danger" data-kickall>Кікнути всіх онлайн</button></div></section>
+    <section class="card"><div class="card-h"><h2>♻️ Рестарт сайту</h2></div><p class="muted mb">Усіх відключає з повідомленням; потрібно перепідключитися. Пошуки збережуться.</p>
+      <label class="field"><span>Повідомлення</span><input class="input" id="rsMsg" maxlength="160" placeholder="Технічне оновлення"></label>
+      <label class="field"><span>Авто-рестарт щодня о (за Києвом, через кому)</span><input class="input" id="rsTimes" placeholder="04:00, 16:00" value="${esc((s.restartTimes || []).join(', '))}"></label>
+      <div class="actions"><button class="btn danger" id="rsNow">♻️ Рестарт зараз</button><button class="btn" id="rsSave">💾 Зберегти розклад</button></div></section>
+    <section class="card"><div class="card-h"><h2>⏱️ Таймер неактивності</h2><span class="chip ${idle.on ? 'green' : ''}">${idle.on ? '🟢 Запущено' : '⚪ Вимкнено'}</span></div>
+      <p class="muted mb">Коли запущено, учасників (не адмінів), які бездіяльні довше вказаного часу, відключає від сайту.</p>
+      <label class="field"><span>Хвилин без активності</span><input class="input" id="idMin" type="number" min="1" value="${idle.minutes || 15}"></label>
+      <div class="actions"><button class="btn ${idle.on ? 'danger' : 'primary'}" id="idToggle">${idle.on ? '⏹ Зупинити таймер' : '▶️ Запустити таймер'}</button><button class="btn" id="idSave">💾 Зберегти час</button></div></section>
+  </div>`;
+}
+const rtVals = () => ({ restartTimes: ($('#rsTimes').value.match(/\b\d{1,2}:\d{2}\b/g) || []).map(t => t.padStart(5, '0')), idleMinutes: Math.max(1, Math.floor(num($('#idMin').value)) || 15) });
+const adminSaveRt = btn => guard(btn, async () => { await adminApi('adminSaveRt', rtVals()); toast('Збережено'); drawAdmin(true); });
+const adminIdleToggle = btn => guard(btn, async () => {
+  const on = !((State.admin.settings || {}).idle || {}).on;
+  await adminApi('adminIdle', { on, minutes: rtVals().idleMinutes });
+  toast(on ? 'Таймер неактивності запущено' : 'Таймер зупинено'); drawAdmin(true);
+});
+async function adminRestartNow() {
+  const msg = ($('#rsMsg') || {}).value || '';
+  if (!(await confirmModal({ title: 'Перезапустити сайт?', text: 'Усіх буде відключено з повідомленням, їм потрібно перепідключитися. <b>Активні пошуки не завершуються.</b>', ok: '♻️ Рестарт', kind: 'danger' }))) return;
+  await guard(null, async () => { const d = await adminApi('adminRestart', { message: msg.trim() }); if (d && d.restartId) State.restartSeen = d.restartId; toast('Рестарт виконано: користувачів відключено'); });
+}
+
+/* ==========================================================
    INIT
    ========================================================== */
 function bindGlobal() {
@@ -2571,6 +2678,7 @@ function bindGlobal() {
   window.addEventListener('hashchange', route);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) Live.kick(); });
   window.addEventListener('online', () => Live.kick());
+  ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(ev => window.addEventListener(ev, () => { State.lastActive = Date.now(); }, { passive: true }));
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-go]'); if (g) return navigate(g.dataset.go);
     const o = e.target.closest('[data-open]');
